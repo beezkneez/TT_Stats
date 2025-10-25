@@ -1040,20 +1040,51 @@ def main():
             help="Play sounds when new alerts arrive (different tones for each priority)"
         )
 
-        # Test sound buttons (simplified - just beeps for now)
+        # Test sound buttons
         if st.session_state.sound_enabled:
             st.caption("Test Sounds:")
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("🔴 High", key="test_high", use_container_width=True):
-                    st.info("Click to hear high priority sound")
-            with col2:
-                if st.button("🟠 Medium", key="test_medium", use_container_width=True):
-                    st.info("Click to hear medium priority sound")
-            with col3:
-                if st.button("🔵 Low", key="test_low", use_container_width=True):
-                    st.info("Click to hear low priority sound")
+            # Simple HTML buttons with beep sounds
+            components.html("""
+                <style>
+                    .test-btn {
+                        border: none;
+                        padding: 12px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        width: 32%;
+                        font-size: 13px;
+                        color: white;
+                        font-weight: bold;
+                    }
+                    .btn-h { background: #d32f2f; }
+                    .btn-m { background: #ff9800; }
+                    .btn-l { background: #2196f3; }
+                </style>
+                <div style="display: flex; gap: 4px; justify-content: space-between;">
+                    <button class="test-btn btn-h" onclick="playBeeps(3, 1200)">🔴 High (3x)</button>
+                    <button class="test-btn btn-m" onclick="playBeeps(2, 800)">🟠 Medium (2x)</button>
+                    <button class="test-btn btn-l" onclick="playBeeps(1, 500)">🔵 Low (1x)</button>
+                </div>
+                <script>
+                    function playBeeps(count, freq) {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        for (let i = 0; i < count; i++) {
+                            setTimeout(() => {
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.frequency.value = freq;
+                                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                                osc.start(ctx.currentTime);
+                                osc.stop(ctx.currentTime + 0.15);
+                            }, i * 200);
+                        }
+                    }
+                </script>
+            """, height=60)
 
 
         st.markdown("---")
