@@ -331,52 +331,18 @@ def check_and_play_alert_sounds(df, symbol):
         sound_to_play = 'info'
 
     if sound_to_play:
-        # Build custom sound data URLs from session state
-        high_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}"' if st.session_state.custom_sounds['high'] else 'null'
-        medium_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}"' if st.session_state.custom_sounds['medium'] else 'null'
-        low_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}"' if st.session_state.custom_sounds['low'] else 'null'
-
-        custom_sounds_js = """
-            const customSounds = {
-                high: """ + high_js + """,
-                medium: """ + medium_js + """,
-                low: """ + low_js + """
-            };
-        """
-
-        # Play sound using self-contained component with custom sound support
+        # Play sound using simple beeps (custom sounds only work in test buttons for now)
         components.html(f"""
             <script>
-                {custom_sounds_js}
-
                 const priority = '{sound_to_play}';
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
 
-                // Map priority to custom sound key
-                const priorityMap = {{'critical': 'high', 'warning': 'medium', 'info': 'low'}};
-                const soundKey = priorityMap[priority];
-                const customSound = customSounds[soundKey];
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
 
-                // Try to play custom sound first
-                if (customSound) {{
-                    const audio = new Audio(customSound);
-                    audio.volume = 0.7;
-                    audio.play().catch(e => {{
-                        console.log('Custom audio play failed, falling back to beep:', e);
-                        playBeep();
-                    }});
-                }} else {{
-                    playBeep();
-                }}
-
-                function playBeep() {{
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-
-                    if (priority === 'critical') {{
+                if (priority === 'critical') {{
                         oscillator.frequency.value = 1200;
                         gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
@@ -426,13 +392,12 @@ def check_and_play_alert_sounds(df, symbol):
                             osc2.stop(audioContext.currentTime + 0.12);
                         }}, 180);
 
-                    }} else {{
-                        oscillator.frequency.value = 500;
-                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                        oscillator.start(audioContext.currentTime);
-                        oscillator.stop(audioContext.currentTime + 0.1);
-                    }}
+                }} else {{
+                    oscillator.frequency.value = 500;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
                 }}
             </script>
         """, height=0)
