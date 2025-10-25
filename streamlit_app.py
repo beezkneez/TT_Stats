@@ -363,29 +363,35 @@ def check_and_play_alert_sounds(df, symbol):
 
     # Play sounds for new alerts (play highest priority only to avoid noise)
     if new_alerts_by_priority['critical'] > 0:
-        components.html("""
+        st.markdown("""
             <script>
-                if (window.playAlertSound) {
-                    window.playAlertSound('critical');
-                }
+                setTimeout(function() {
+                    if (window.playAlertSound) {
+                        window.playAlertSound('critical');
+                    }
+                }, 100);
             </script>
-        """, height=0)
+        """, unsafe_allow_html=True)
     elif new_alerts_by_priority['warning'] > 0:
-        components.html("""
+        st.markdown("""
             <script>
-                if (window.playAlertSound) {
-                    window.playAlertSound('warning');
-                }
+                setTimeout(function() {
+                    if (window.playAlertSound) {
+                        window.playAlertSound('warning');
+                    }
+                }, 100);
             </script>
-        """, height=0)
+        """, unsafe_allow_html=True)
     elif new_alerts_by_priority['info'] > 0:
-        components.html("""
+        st.markdown("""
             <script>
-                if (window.playAlertSound) {
-                    window.playAlertSound('info');
-                }
+                setTimeout(function() {
+                    if (window.playAlertSound) {
+                        window.playAlertSound('info');
+                    }
+                }, 100);
             </script>
-        """, height=0)
+        """, unsafe_allow_html=True)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
@@ -828,6 +834,35 @@ def main():
             value=st.session_state.sound_enabled,
             help="Play sounds when new alerts arrive (different tones for each priority)"
         )
+
+        # Test sound buttons
+        if st.session_state.sound_enabled:
+            st.caption("Test Sounds:")
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.markdown("""
+                    <button onclick="window.playAlertSound('critical')"
+                            style="background: #d32f2f; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
+                        🔴 Critical
+                    </button>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                st.markdown("""
+                    <button onclick="window.playAlertSound('warning')"
+                            style="background: #f57c00; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
+                        🟡 Warning
+                    </button>
+                """, unsafe_allow_html=True)
+
+            with col3:
+                st.markdown("""
+                    <button onclick="window.playAlertSound('info')"
+                            style="background: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
+                        🔵 Info
+                    </button>
+                """, unsafe_allow_html=True)
 
         st.markdown("---")
 
