@@ -126,6 +126,8 @@ def load_gap_data(file_path):
         if supabase:
             response = supabase.table('gap_details').select('data').eq('id', 1).single().execute()
             data = response.data['data']
+            if not data:  # Empty array
+                return None
             df = pd.DataFrame(data)
             df['date'] = pd.to_datetime(df['date'])
             return df
@@ -136,6 +138,8 @@ def load_gap_data(file_path):
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
+        if not data:
+            return None
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
         return df
@@ -150,6 +154,8 @@ def load_ib_data(file_path):
         if supabase:
             response = supabase.table('ib_details').select('data').eq('id', 1).single().execute()
             data = response.data['data']
+            if not data:  # Empty array
+                return None
             return pd.DataFrame(data)
     except:
         pass
@@ -158,6 +164,8 @@ def load_ib_data(file_path):
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
+        if not data:
+            return None
         return pd.DataFrame(data)
     except:
         return None
@@ -170,6 +178,8 @@ def load_single_prints_data(file_path):
         if supabase:
             response = supabase.table('single_prints').select('data').eq('id', 1).single().execute()
             data = response.data['data']
+            if not data:  # Empty array
+                return None
             return pd.DataFrame(data)
     except:
         pass
@@ -178,6 +188,8 @@ def load_single_prints_data(file_path):
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
+        if not data:
+            return None
         return pd.DataFrame(data)
     except:
         return None
@@ -190,6 +202,8 @@ def load_alerts_data(table_name):
         if supabase:
             response = supabase.table(table_name).select('data').eq('id', 1).single().execute()
             data = response.data['data']
+            if not data:  # Empty array
+                return None
             df = pd.DataFrame(data)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             return df
@@ -201,6 +215,8 @@ def load_alerts_data(table_name):
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
+        if not data:
+            return None
         df = pd.DataFrame(data)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
