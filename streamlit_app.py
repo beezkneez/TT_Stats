@@ -134,7 +134,7 @@ def load_single_prints_data(file_path):
         st.error(f"Error loading single prints data: {e}")
         return None
 
-@st.cache_data(ttl=1)  # Refresh alerts every 1 second
+@st.cache_data(ttl=5)  # Refresh alerts every 5 seconds
 def load_alerts_data(file_path):
     """Load real-time alerts from Sierra Chart studies"""
     try:
@@ -496,11 +496,6 @@ def main():
     with st.sidebar:
         st.markdown("### ⚙️ Settings")
 
-        # Symbol selector
-        symbol = st.selectbox("Symbol", ["NQ", "ES"], index=0)
-
-        st.markdown("---")
-
         # Data file paths
         st.markdown("### 📁 Data Sources")
         gap_file = st.text_input("Gap Data", value="gap_details.json")
@@ -512,41 +507,41 @@ def main():
 
         # Refresh settings
         st.markdown("### 🔄 Refresh")
-        auto_refresh = st.checkbox("Auto-refresh", value=True)
 
         if st.button("🔄 Refresh Now", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
-        if auto_refresh:
-            st.caption("⏱️ Stats: 5 min | Alerts: 5 sec")
+        auto_refresh_interval = st.selectbox(
+            "Auto-refresh interval",
+            options=[5, 10, 30, 60, 300],
+            format_func=lambda x: f"{x} seconds" if x < 60 else f"{x//60} minutes",
+            index=0
+        )
+
+        st.caption(f"Page will auto-refresh every {auto_refresh_interval} sec")
 
         st.markdown("---")
 
-        # Block ordering and visibility
-        st.markdown("### 📐 Section Order & Visibility")
-        st.caption("Set the order (1-4) for each section. Lower numbers appear first.")
-        st.caption("⚠️ Each section must have a unique number!")
-
-        # Default order: Alerts=1, Gap=2, IB=3, SP=4
-        alerts_order = st.number_input("🚨 Alerts", min_value=1, max_value=4, value=1, step=1, key="alerts_order")
-        gap_order = st.number_input("📈 Gap Stats", min_value=1, max_value=4, value=2, step=1, key="gap_order")
-        ib_order = st.number_input("⏰ Initial Balance", min_value=1, max_value=4, value=3, step=1, key="ib_order")
-        sp_order = st.number_input("📍 Single Prints", min_value=1, max_value=4, value=4, step=1, key="sp_order")
-
-        # Check for duplicates
-        order_values = [alerts_order, gap_order, ib_order, sp_order]
-        if len(order_values) != len(set(order_values)):
-            st.warning("⚠️ Duplicate order numbers detected! Sections may overlap.")
-
-        st.markdown("---")
-
-        # Visibility toggles
+        # Visibility toggles - simple checkboxes
         st.markdown("### 👁️ Show/Hide Sections")
-        show_alerts = st.checkbox("Show Alerts", value=True)
-        show_gap = st.checkbox("Show Gap Stats", value=True)
-        show_ib = st.checkbox("Show Initial Balance", value=True)
-        show_sp = st.checkbox("Show Single Prints", value=True)
+        show_alerts = st.checkbox("Show Alerts", value=True, key="show_alerts")
+        show_gap = st.checkbox("Show Gap Stats", value=True, key="show_gap")
+        show_ib = st.checkbox("Show Initial Balance", value=False, key="show_ib")
+        show_sp = st.checkbox("Show Single Prints", value=False, key="show_sp")
+
+        st.markdown("---")
+
+        # Section ordering
+        st.markdown("### 📐 Section Order")
+        st.caption("Drag sections will appear in this order (top to bottom):")
+
+        section_order = st.multiselect(
+            "Select order",
+            options=["Alerts", "Gap Stats", "Initial Balance", "Single Prints"],
+            default=["Alerts", "Gap Stats", "Initial Balance", "Single Prints"],
+            help="Sections appear in the order you arrange them here"
+        )
 
         st.markdown("---")
         st.markdown("### ℹ️ About")
@@ -559,61 +554,27 @@ def main():
     ib_df = load_ib_data(Path(__file__).parent / ib_file)
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
 
-    # Create block dictionary with order and render functions
-    blocks = []
+    # Section mapping
+    section_map = {
+        "Alerts": ("alerts", show_alerts, lambda: render_alerts_block()),
+        "Gap Stats": ("gap", show_gap, lambda: render_gap_block(gap_df)),
+        "Initial Balance": ("ib", show_ib, lambda: render_ib_block(ib_df)),
+        "Single Prints": ("sp", show_sp, lambda: render_single_prints_block(sp_df))
+    }
 
-    if show_alerts:
-        blocks.append({
-            'order': alerts_order,
-            'name': 'alerts',
-            'render': lambda: render_alerts_block()
-        })
+    # Render sections in order
+    for section_name in section_order:
+        if section_name in section_map:
+            _, is_visible, render_func = section_map[section_name]
+            if is_visible:
+                with st.container():
+                    render_func()
+                st.markdown("<br>", unsafe_allow_html=True)
 
-    if show_gap:
-        blocks.append({
-            'order': gap_order,
-            'name': 'gap',
-            'render': lambda df=gap_df: render_gap_block(df)
-        })
-
-    if show_ib:
-        blocks.append({
-            'order': ib_order,
-            'name': 'ib',
-            'render': lambda df=ib_df: render_ib_block(df)
-        })
-
-    if show_sp:
-        blocks.append({
-            'order': sp_order,
-            'name': 'sp',
-            'render': lambda df=sp_df: render_single_prints_block(df)
-        })
-
-    # Sort blocks by order, then by name for stable sorting
-    blocks.sort(key=lambda x: (x['order'], x['name']))
-
-    # Render blocks in order (only render each once)
-    rendered_names = set()
-    for block in blocks:
-        if block['name'] not in rendered_names:
-            with st.container():
-                block['render']()
-            st.markdown("<br>", unsafe_allow_html=True)
-            rendered_names.add(block['name'])
-
-    # Auto-refresh implementation
-    # Note: Alert data has 1-sec cache TTL, but UI refreshes every 5 sec
-    if auto_refresh and show_alerts:
-        # Refresh every 5 seconds when alerts are visible
-        import time
-        time.sleep(5)
-        st.rerun()
-    elif auto_refresh:
-        # If alerts hidden, use 5 min refresh for stats only
-        import time
-        time.sleep(300)
-        st.rerun()
+    # Auto-refresh using st.rerun with timer
+    import time
+    time.sleep(auto_refresh_interval)
+    st.rerun()
 
 if __name__ == "__main__":
     main()
