@@ -77,6 +77,34 @@ CREATE TABLE risk_assessment (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Table for Opening Range (9:30-10:00 EST)
+CREATE TABLE opening_range (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for 3-Stage Progression Tracker
+CREATE TABLE stage_progression (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for TPO/Market Profile
+CREATE TABLE tpo_profile (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for Daily Market Context (pre-market analysis)
+CREATE TABLE daily_context (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert initial empty data
 INSERT INTO alerts_nq (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO alerts_es (id, data) VALUES (1, '[]'::jsonb);
@@ -85,6 +113,10 @@ INSERT INTO ib_details (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO single_prints (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO market_environment (id, data) VALUES (1, '{}'::jsonb);
 INSERT INTO risk_assessment (id, data) VALUES (1, '{}'::jsonb);
+INSERT INTO opening_range (id, data) VALUES (1, '{}'::jsonb);
+INSERT INTO stage_progression (id, data) VALUES (1, '[]'::jsonb);
+INSERT INTO tpo_profile (id, data) VALUES (1, '{}'::jsonb);
+INSERT INTO daily_context (id, data) VALUES (1, '{}'::jsonb);
 ```
 
 3. Click **"Run"**

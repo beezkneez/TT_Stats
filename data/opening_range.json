@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-10-25T10:00:00",
+  "symbol": "NQ",
+  "date": "2025-10-25",
+  "start_time": "09:30:00",
+  "end_time": "10:00:00",
+  "high": 20975.50,
+  "low": 20912.25,
+  "range": 63.25,
+  "atr_daily": 285.5,
+  "range_pct_atr": 22.1,
+  "open": 20925.00,
+  "close_10am": 20965.75,
+  "direction": "bullish",
+  "status": "complete",
+  "key_levels": {
+    "or_high": 20975.50,
+    "or_low": 20912.25,
+    "or_mid": 20943.88
+  },
+  "context": "Narrow 30-min opening range at 22% of ATR. Bias: Test OR high for continuation."
+}

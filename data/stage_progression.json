@@ -1,0 +1,41 @@
+[
+  {
+    "level_name": "Yesterday's High",
+    "price": 21050.00,
+    "current_stage": 2,
+    "stage_1_time": "2025-10-25T09:45:00",
+    "stage_2_time": "2025-10-25T10:15:00",
+    "stage_3_time": null,
+    "status": "active",
+    "direction": "testing_above",
+    "distance_to_price": 75.50,
+    "timeframe": "30MIN",
+    "context": "Second test of yesterday's high. Watching for acceptance above."
+  },
+  {
+    "level_name": "IB High",
+    "price": 20985.75,
+    "current_stage": 3,
+    "stage_1_time": "2025-10-25T10:30:00",
+    "stage_2_time": "2025-10-25T11:00:00",
+    "stage_3_time": "2025-10-25T11:25:00",
+    "status": "completed",
+    "direction": "accepted_above",
+    "distance_to_price": -9.75,
+    "timeframe": "5MIN",
+    "context": "IB high accepted. Now support."
+  },
+  {
+    "level_name": "Weekly VPOC",
+    "price": 20900.00,
+    "current_stage": 1,
+    "stage_1_time": "2025-10-25T12:00:00",
+    "stage_2_time": null,
+    "stage_3_time": null,
+    "status": "active",
+    "direction": "testing_below",
+    "distance_to_price": -75.50,
+    "timeframe": "4HR",
+    "context": "First touch of weekly VPOC from above. Key support level."
+  }
+]

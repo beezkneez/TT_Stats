@@ -45,7 +45,18 @@ supabase = init_supabase()
 
 # Initialize session state for section ordering
 if 'section_order' not in st.session_state:
-    st.session_state.section_order = ["Alerts", "Environment", "Risk Assessment", "Gap Stats", "Initial Balance", "Single Prints"]
+    st.session_state.section_order = [
+        "Daily Context",
+        "Environment",
+        "Risk Assessment",
+        "Opening Range",
+        "Initial Balance",
+        "3-Stage Progression",
+        "TPO Profile",
+        "Single Prints",
+        "Gap Stats",
+        "Alerts"
+    ]
 
 # Initialize session state for dismissed alerts (user-specific, doesn't affect others)
 if 'dismissed_alerts' not in st.session_state:
@@ -273,6 +284,90 @@ def load_risk_assessment_data(file_path):
         # Try Supabase first
         if supabase:
             response = supabase.table('risk_assessment').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data:
+                return None
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if data else None
+    except:
+        return None
+
+@st.cache_data(ttl=300)  # Refresh every 5 minutes (static after 6 AM generation)
+def load_daily_context_data(file_path):
+    """Load Daily Market Context data from Supabase or JSON file"""
+    try:
+        if supabase:
+            response = supabase.table('daily_context').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data:
+                return None
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if data else None
+    except:
+        return None
+
+@st.cache_data(ttl=5)  # Refresh every 5 seconds (updates until 10:00 AM, then static)
+def load_opening_range_data(file_path):
+    """Load Opening Range data from Supabase or JSON file"""
+    try:
+        if supabase:
+            response = supabase.table('opening_range').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data:
+                return None
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if data else None
+    except:
+        return None
+
+@st.cache_data(ttl=5)  # Refresh every 5 seconds (real-time)
+def load_stage_progression_data(file_path):
+    """Load 3-Stage Progression data from Supabase or JSON file"""
+    try:
+        if supabase:
+            response = supabase.table('stage_progression').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data or len(data) == 0:
+                return []
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if (data and len(data) > 0) else []
+    except:
+        return []
+
+@st.cache_data(ttl=30)  # Refresh every 30 seconds (updates throughout session)
+def load_tpo_profile_data(file_path):
+    """Load TPO/Market Profile data from Supabase or JSON file"""
+    try:
+        if supabase:
+            response = supabase.table('tpo_profile').select('data').eq('id', 1).single().execute()
             data = response.data['data']
             if not data:
                 return None
@@ -830,7 +925,274 @@ def render_risk_assessment_block(data):
                 """, unsafe_allow_html=True)
 
 # ========================================
-# BLOCK 6: REAL-TIME ALERTS
+# BLOCK 6: DAILY MARKET CONTEXT
+# ========================================
+
+def render_daily_context_block(data):
+    """Render the Daily Market Context block (pre-market analysis)"""
+    if data is None:
+        st.info("⏳ No daily context data available")
+        return
+
+    st.markdown('<div class="block-header">📋 Daily Market Context</div>', unsafe_allow_html=True)
+
+    st.caption(f"Generated: {data.get('generated_at', 'N/A')} | Date: {data.get('date', 'N/A')}")
+
+    # Timeframe Analysis
+    st.markdown("### 📊 Timeframe Analysis")
+    tf_analysis = data.get('timeframe_analysis', {})
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        tf_4hr = tf_analysis.get('4hr', {})
+        st.markdown("**4HR**")
+        st.markdown(f"**Trend:** {tf_4hr.get('trend', 'N/A').replace('_', ' ').title()}")
+        st.markdown(f"**Bias:** {tf_4hr.get('bias', 'N/A').title()}")
+        st.caption(tf_4hr.get('context', ''))
+
+    with col2:
+        tf_30min = tf_analysis.get('30min', {})
+        st.markdown("**30MIN**")
+        st.markdown(f"**Trend:** {tf_30min.get('trend', 'N/A').replace('_', ' ').title()}")
+        st.markdown(f"**Bias:** {tf_30min.get('bias', 'N/A').title()}")
+        st.caption(tf_30min.get('context', ''))
+
+    with col3:
+        tf_5min = tf_analysis.get('5min', {})
+        st.markdown("**5MIN**")
+        st.markdown(f"**Trend:** {tf_5min.get('trend', 'N/A').replace('_', ' ').title()}")
+        st.markdown(f"**Bias:** {tf_5min.get('bias', 'N/A').title()}")
+        st.caption(tf_5min.get('context', ''))
+
+    st.markdown("---")
+
+    # Key Scenarios
+    st.markdown("### 🎯 Key Scenarios")
+    scenarios = data.get('key_scenarios', [])
+
+    for scenario in scenarios:
+        with st.expander(f"{scenario.get('name', 'Scenario')}"):
+            st.markdown(f"**Trigger:** {scenario.get('trigger', 'N/A')}")
+            st.markdown(f"**Target:** {scenario.get('target', 'N/A')}")
+            st.markdown(f"**Invalidation:** {scenario.get('invalidation', 'N/A')}")
+
+    st.markdown("---")
+
+    # Critical Levels
+    st.markdown("### 🎯 Critical Levels")
+    levels = data.get('critical_levels', {})
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Resistance:**")
+        for level in levels.get('resistance', []):
+            st.markdown(f"• {level:,.2f}")
+
+    with col2:
+        st.markdown("**Support:**")
+        for level in levels.get('support', []):
+            st.markdown(f"• {level:,.2f}")
+
+    if 'key_level' in levels:
+        st.info(f"🔑 **Key Level: {levels['key_level']:,.2f}** - {levels.get('key_level_context', '')}")
+
+# ========================================
+# BLOCK 7: OPENING RANGE
+# ========================================
+
+def render_opening_range_block(data):
+    """Render the Opening Range block (9:30-10:00 EST)"""
+    if data is None:
+        st.info("⏳ Opening Range data not available yet")
+        return
+
+    st.markdown('<div class="block-header">⏰ Opening Range (9:30-10:00 EST)</div>', unsafe_allow_html=True)
+
+    status = data.get('status', 'pending')
+    if status == 'pending':
+        st.warning("⏳ Waiting for market open at 9:30 AM EST")
+        return
+    elif status == 'in_progress':
+        st.info("📊 Opening Range in progress...")
+    else:
+        st.success("✅ Opening Range complete")
+
+    # Key Metrics
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        or_high = data.get('high', 0)
+        st.metric("OR High", f"{or_high:,.2f}")
+
+    with col2:
+        or_low = data.get('low', 0)
+        st.metric("OR Low", f"{or_low:,.2f}")
+
+    with col3:
+        or_range = data.get('range', 0)
+        st.metric("Range", f"{or_range:,.2f}")
+
+    with col4:
+        range_pct_atr = data.get('range_pct_atr', 0)
+        delta_color = "normal" if range_pct_atr < 30 else "inverse"
+        st.metric("% of ATR", f"{range_pct_atr:.1f}%", delta_color=delta_color)
+
+    # Context
+    context = data.get('context', '')
+    if context:
+        st.info(f"💡 {context}")
+
+# ========================================
+# BLOCK 8: 3-STAGE PROGRESSION
+# ========================================
+
+def render_stage_progression_block(data):
+    """Render the 3-Stage Progression Tracker block"""
+    if data is None or len(data) == 0:
+        st.info("⏳ No levels being tracked")
+        return
+
+    st.markdown('<div class="block-header">📈 3-Stage Progression Tracker</div>', unsafe_allow_html=True)
+
+    for level in data:
+        level_name = level.get('level_name', 'Unknown Level')
+        price = level.get('price', 0)
+        current_stage = level.get('current_stage', 0)
+        status = level.get('status', 'active')
+        direction = level.get('direction', '')
+        context = level.get('context', '')
+
+        # Color coding based on stage
+        if current_stage == 1:
+            stage_color = "#2196f3"  # Blue
+            stage_emoji = "1️⃣"
+        elif current_stage == 2:
+            stage_color = "#ff9800"  # Orange
+            stage_emoji = "2️⃣"
+        else:
+            stage_color = "#4caf50"  # Green
+            stage_emoji = "3️⃣"
+
+        # Status emoji
+        if status == 'completed':
+            status_emoji = "✅"
+        else:
+            status_emoji = "🔄"
+
+        with st.expander(f"{status_emoji} {level_name} @ {price:,.2f} - Stage {current_stage}", expanded=(current_stage >= 2)):
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.markdown(f"**Stage:** {stage_emoji} {current_stage}/3")
+            with col2:
+                st.markdown(f"**Direction:** {direction.replace('_', ' ').title()}")
+            with col3:
+                st.markdown(f"**Timeframe:** {level.get('timeframe', 'N/A')}")
+
+            # Stage timeline
+            st.markdown("**Timeline:**")
+            if level.get('stage_1_time'):
+                st.caption(f"Stage 1: {level['stage_1_time']}")
+            if level.get('stage_2_time'):
+                st.caption(f"Stage 2: {level['stage_2_time']}")
+            if level.get('stage_3_time'):
+                st.caption(f"Stage 3: {level['stage_3_time']}")
+
+            if context:
+                st.info(f"💡 {context}")
+
+# ========================================
+# BLOCK 9: TPO/MARKET PROFILE
+# ========================================
+
+def render_tpo_profile_block(data):
+    """Render the TPO/Market Profile block"""
+    if data is None:
+        st.info("⏳ TPO Profile data not available")
+        return
+
+    st.markdown('<div class="block-header">📊 TPO / Market Profile</div>', unsafe_allow_html=True)
+
+    st.caption(f"Session: {data.get('session', 'RTH')} | Date: {data.get('date', 'N/A')}")
+
+    # Profile Overview
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown(f"**Type:** {data.get('profile_type', 'N/A')}")
+        st.markdown(f"**Shape:** {data.get('shape', 'N/A')}")
+
+    with col2:
+        st.metric("POC", f"{data.get('poc', 0):,.2f}")
+
+    with col3:
+        st.metric("Range", f"{data.get('range', 0):,.2f}")
+
+    st.markdown("---")
+
+    # Value Area
+    st.markdown("### 📍 Value Area")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("VAH", f"{data.get('value_area_high', 0):,.2f}")
+
+    with col2:
+        va_pct = data.get('value_area_pct', 70)
+        st.metric("VA %", f"{va_pct}%")
+
+    with col3:
+        st.metric("VAL", f"{data.get('value_area_low', 0):,.2f}")
+
+    st.markdown("---")
+
+    # Structure
+    structure = data.get('structure', {})
+    st.markdown("### 🏗️ Structure")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        single_prints_above = structure.get('single_prints_above', [])
+        if single_prints_above:
+            st.markdown("**Single Prints Above:**")
+            for sp in single_prints_above:
+                st.caption(f"• {sp:,.2f}")
+
+        poor_highs = structure.get('poor_highs', [])
+        if poor_highs:
+            st.markdown("**Poor Highs:**")
+            for ph in poor_highs:
+                st.caption(f"• {ph:,.2f}")
+
+    with col2:
+        single_prints_below = structure.get('single_prints_below', [])
+        if single_prints_below:
+            st.markdown("**Single Prints Below:**")
+            for sp in single_prints_below:
+                st.caption(f"• {sp:,.2f}")
+
+        poor_lows = structure.get('poor_lows', [])
+        if poor_lows:
+            st.markdown("**Poor Lows:**")
+            for pl in poor_lows:
+                st.caption(f"• {pl:,.2f}")
+
+    # Context
+    context = data.get('context', '')
+    if context:
+        st.info(f"💡 {context}")
+
+    # Trading Implications
+    implications = data.get('trading_implications', [])
+    if implications:
+        st.markdown("### 💡 Trading Implications")
+        for implication in implications:
+            st.markdown(f"• {implication}")
+
+# ========================================
+# BLOCK 10: REAL-TIME ALERTS
 # ========================================
 
 def render_alerts_block():
@@ -1077,12 +1439,16 @@ def main():
 
         # Visibility toggles
         st.markdown("### 👁️ Show/Hide Sections")
-        show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
+        show_daily_context = st.checkbox("Daily Context", value=True, key="show_daily_context")
         show_environment = st.checkbox("Environment", value=True, key="show_environment")
         show_risk = st.checkbox("Risk Assessment", value=True, key="show_risk")
-        show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
+        show_opening_range = st.checkbox("Opening Range", value=True, key="show_opening_range")
         show_ib = st.checkbox("Initial Balance", value=True, key="show_ib")
+        show_stage_progression = st.checkbox("3-Stage Progression", value=True, key="show_stage_progression")
+        show_tpo_profile = st.checkbox("TPO Profile", value=True, key="show_tpo_profile")
         show_sp = st.checkbox("Single Prints", value=True, key="show_sp")
+        show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
+        show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
 
         st.markdown("---")
 
@@ -1121,15 +1487,23 @@ def main():
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
     environment_data = load_environment_data(Path(__file__).parent / "data/market_environment.json")
     risk_data = load_risk_assessment_data(Path(__file__).parent / "data/risk_assessment.json")
+    daily_context_data = load_daily_context_data(Path(__file__).parent / "data/daily_context.json")
+    opening_range_data = load_opening_range_data(Path(__file__).parent / "data/opening_range.json")
+    stage_progression_data = load_stage_progression_data(Path(__file__).parent / "data/stage_progression.json")
+    tpo_profile_data = load_tpo_profile_data(Path(__file__).parent / "data/tpo_profile.json")
 
     # Section mapping with visibility
     section_config = {
-        "Alerts": (show_alerts, lambda: render_alerts_block()),
+        "Daily Context": (show_daily_context, lambda: render_daily_context_block(daily_context_data)),
         "Environment": (show_environment, lambda: render_environment_block(environment_data)),
         "Risk Assessment": (show_risk, lambda: render_risk_assessment_block(risk_data)),
-        "Gap Stats": (show_gap, lambda: render_gap_block(gap_df)),
+        "Opening Range": (show_opening_range, lambda: render_opening_range_block(opening_range_data)),
         "Initial Balance": (show_ib, lambda: render_ib_block(ib_df)),
-        "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df))
+        "3-Stage Progression": (show_stage_progression, lambda: render_stage_progression_block(stage_progression_data)),
+        "TPO Profile": (show_tpo_profile, lambda: render_tpo_profile_block(tpo_profile_data)),
+        "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df)),
+        "Gap Stats": (show_gap, lambda: render_gap_block(gap_df)),
+        "Alerts": (show_alerts, lambda: render_alerts_block())
     }
 
     # Render sections in order - only render visible sections once

@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-10-25T16:00:00",
+  "symbol": "NQ",
+  "date": "2025-10-25",
+  "session": "RTH",
+  "profile_type": "Normal",
+  "shape": "P-shaped",
+  "poc": 20950.00,
+  "value_area_high": 20985.00,
+  "value_area_low": 20915.00,
+  "value_area_pct": 70,
+  "high": 21025.50,
+  "low": 20875.25,
+  "range": 150.25,
+  "initial_balance_high": 20985.75,
+  "initial_balance_low": 20912.25,
+  "tpo_count": {
+    "above_value": 8,
+    "in_value": 24,
+    "below_value": 6
+  },
+  "structure": {
+    "single_prints_above": [],
+    "single_prints_below": [20880.00, 20882.50, 20885.00],
+    "poor_highs": [],
+    "poor_lows": [20875.25]
+  },
+  "context": "Normal distribution day with P-shape. POC near IB midpoint. Single prints below value suggest unfinished business lower.",
+  "trading_implications": [
+    "Value established 20915-20985",
+    "POC acceptance at 20950 is key",
+    "Poor low at 20875 - likely to fill",
+    "Single prints 20880-20885 - downside magnet"
+  ]
+}
