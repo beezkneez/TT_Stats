@@ -314,9 +314,56 @@ def render_ib_block(df):
                    unsafe_allow_html=True)
         return
 
-    # Show IB data when available
-    st.success(f"✅ Loaded {len(df)} IB records")
-    st.json(df.head(3).to_dict(orient='records'))
+    # Get today's IB data (most recent)
+    today_ib = df.iloc[0]
+
+    # Today's IB metrics
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("IB Range", f"{today_ib['ib_range']:.2f} pts",
+                 delta=f"{today_ib['ib_pct_atr']:.1f}% of ATR")
+
+    with col2:
+        st.metric("IB High", f"{today_ib['ib_high']:.2f}")
+        st.caption(f"Low: {today_ib['ib_low']:.2f}")
+
+    with col3:
+        extension_pct = today_ib.get('current_extension_pct', 0)
+        st.metric("Current Extension", f"{extension_pct:.1f}%")
+
+    with col4:
+        direction = today_ib.get('direction', 'N/A')
+        direction_emoji = "🟢" if direction == "Up" else "🔴" if direction == "Down" else "⚪"
+        st.metric("Direction", f"{direction_emoji} {direction}")
+
+    st.markdown("---")
+
+    # Extension levels
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        reached_30 = "✅" if today_ib.get('reached_30', False) else "⏳"
+        st.markdown(f"**30% Extension** {reached_30}")
+        st.caption(f"Level: {today_ib.get('extension_30_level', 0):.2f}")
+        if today_ib.get('time_to_30'):
+            st.caption(f"Time: {today_ib['time_to_30']} min")
+
+    with col2:
+        reached_50 = "✅" if today_ib.get('reached_50', False) else "⏳"
+        st.markdown(f"**50% Extension** {reached_50}")
+        st.caption(f"Level: {today_ib.get('extension_50_level', 0):.2f}")
+        if today_ib.get('time_to_50'):
+            st.caption(f"Time: {today_ib['time_to_50']} min")
+
+    with col3:
+        reached_100 = "✅" if today_ib.get('reached_100', False) else "⏳"
+        st.markdown(f"**100% Extension** {reached_100}")
+        st.caption(f"Level: {today_ib.get('extension_100_level', 0):.2f}")
+
+    # Historical data
+    with st.expander("📊 View Historical IB Data"):
+        st.dataframe(df.head(10), use_container_width=True, hide_index=True)
 
 # ========================================
 # BLOCK 3: SINGLE PRINTS
@@ -331,9 +378,45 @@ def render_single_prints_block(df):
                    unsafe_allow_html=True)
         return
 
-    # Show single prints data when available
-    st.success(f"✅ Loaded {len(df)} single print levels")
-    st.json(df.head(5).to_dict(orient='records'))
+    # Filter active (unfilled) single prints
+    active_prints = df[df['filled'] == False].copy()
+    filled_prints = df[df['filled'] == True].copy()
+
+    # Summary metrics
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Active Single Prints", len(active_prints))
+
+    with col2:
+        st.metric("Filled (Recent)", len(filled_prints))
+
+    with col3:
+        if len(active_prints) > 0:
+            avg_age = active_prints['age_days'].mean()
+            st.metric("Avg Age", f"{avg_age:.1f} days")
+
+    st.markdown("---")
+
+    # Active single prints table
+    if len(active_prints) > 0:
+        st.markdown("### 🎯 Active Single Prints")
+
+        # Format for display
+        display_df = active_prints[['symbol', 'price_level', 'age_days', 'distance_from_current', 'direction_from_current']].copy()
+        display_df.columns = ['Symbol', 'Price Level', 'Age (days)', 'Distance', 'Direction']
+        display_df = display_df.sort_values('distance_from_current').head(10)
+
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No active single prints")
+
+    # Recently filled prints
+    if len(filled_prints) > 0:
+        with st.expander("✅ Recently Filled Single Prints"):
+            filled_df = filled_prints[['symbol', 'price_level', 'fill_date', 'fill_time_minutes']].copy()
+            filled_df.columns = ['Symbol', 'Price Level', 'Fill Date', 'Time to Fill (min)']
+            st.dataframe(filled_df.head(10), use_container_width=True, hide_index=True)
 
 # ========================================
 # BLOCK 4: REAL-TIME ALERTS
