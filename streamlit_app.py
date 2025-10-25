@@ -21,16 +21,22 @@ def init_supabase():
     """Initialize Supabase client with credentials from secrets"""
     try:
         from supabase import create_client, Client
-        url = st.secrets.get("SUPABASE_URL", "")
-        key = st.secrets.get("SUPABASE_KEY", "")
+
+        # Check if secrets exist
+        if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
+            st.warning("⚠️ Supabase credentials not configured. Using local JSON files.")
+            return None
+
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
 
         if not url or not key:
-            st.warning("⚠️ Supabase credentials not configured. Using local JSON files.")
+            st.warning("⚠️ Supabase credentials are empty. Using local JSON files.")
             return None
 
         return create_client(url, key)
     except Exception as e:
-        st.error(f"Failed to connect to Supabase: {e}")
+        st.error(f"❌ Failed to connect to Supabase: {e}")
         return None
 
 supabase = init_supabase()
