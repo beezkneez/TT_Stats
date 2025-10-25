@@ -15,6 +15,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize session state for section ordering
+if 'section_order' not in st.session_state:
+    st.session_state.section_order = ["Alerts", "Gap Stats", "Initial Balance", "Single Prints"]
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -26,13 +30,6 @@ st.markdown("""
         background: linear-gradient(90deg, #1f77b4, #ff7f0e);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 2rem;
-    }
-    .block-container {
-        background-color: #0e1117;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        border: 2px solid #262730;
         margin-bottom: 2rem;
     }
     .block-header {
@@ -105,7 +102,6 @@ def load_gap_data(file_path):
         df['date'] = pd.to_datetime(df['date'])
         return df
     except Exception as e:
-        st.error(f"Error loading gap data: {e}")
         return None
 
 @st.cache_data(ttl=300)
@@ -118,7 +114,6 @@ def load_ib_data(file_path):
     except FileNotFoundError:
         return None
     except Exception as e:
-        st.error(f"Error loading IB data: {e}")
         return None
 
 @st.cache_data(ttl=300)
@@ -131,7 +126,6 @@ def load_single_prints_data(file_path):
     except FileNotFoundError:
         return None
     except Exception as e:
-        st.error(f"Error loading single prints data: {e}")
         return None
 
 @st.cache_data(ttl=5)  # Refresh alerts every 5 seconds
@@ -146,7 +140,6 @@ def load_alerts_data(file_path):
     except FileNotFoundError:
         return None
     except Exception as e:
-        st.error(f"Error loading alerts: {e}")
         return None
 
 # ========================================
@@ -319,30 +312,9 @@ def render_ib_block(df):
     if df is None:
         st.markdown('<div class="coming-soon">🚧 Coming Soon<br><small>Waiting for IB data feed from Sierra Chart</small></div>',
                    unsafe_allow_html=True)
-
-        # Show mockup of what this will look like
-        with st.expander("Preview: What this block will show"):
-            st.markdown("""
-            **Today's IB Metrics:**
-            - IB Range (High - Low)
-            - IB Range % of ATR
-            - Current Extension Level (30%, 50%, 100%)
-
-            **Conditional Stats (when 30% extension hit):**
-            - Probability of reaching 50% extension
-            - Probability of reaching 100% extension
-            - Average time to reach each level
-
-            **Historical Analytics:**
-            - IB range distribution
-            - Extension success rates by IB size
-            - Time-of-day patterns
-            """)
         return
 
-    # When data is available, render actual IB stats
     st.info("IB data loaded - rendering statistics...")
-    # TODO: Implement IB visualization when data feed is ready
 
 # ========================================
 # BLOCK 3: SINGLE PRINTS
@@ -355,28 +327,9 @@ def render_single_prints_block(df):
     if df is None:
         st.markdown('<div class="coming-soon">🚧 Coming Soon<br><small>Waiting for single prints data feed</small></div>',
                    unsafe_allow_html=True)
-
-        with st.expander("Preview: What this block will show"):
-            st.markdown("""
-            **Today's Single Prints:**
-            - Active single print levels
-            - Distance from current price
-            - Age of single print
-
-            **Fill Statistics:**
-            - Fill rate by age
-            - Fill rate by market condition
-            - Average time to fill
-
-            **Alerts:**
-            - Price approaching single print (within X points)
-            - Single print filled
-            - New single print formed
-            """)
         return
 
     st.info("Single prints data loaded - rendering statistics...")
-    # TODO: Implement single prints visualization when data feed is ready
 
 # ========================================
 # BLOCK 4: REAL-TIME ALERTS
@@ -384,7 +337,7 @@ def render_single_prints_block(df):
 
 def render_alerts_block():
     """Render the Real-Time Alerts block from Sierra Chart studies with NQ/ES side-by-side"""
-    st.markdown('<div class="block-header">🚨 Real-Time Alerts (Updates Every 5 Seconds)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="block-header">🚨 Real-Time Alerts</div>', unsafe_allow_html=True)
 
     # Current time display
     is_live, current_time = get_current_market_status()
@@ -409,22 +362,6 @@ def render_alert_feed(df, symbol):
     """Render alert feed for a specific symbol"""
     if df is None:
         st.info(f"⏳ Waiting for {symbol} alerts")
-        with st.expander(f"ℹ️ {symbol} Alert Format"):
-            st.caption("""
-            **Expected file:** alerts_{}.json
-
-            **Sample format:**
-            ```json
-            [{{
-              "timestamp": "2024-01-15T10:35:22",
-              "symbol": "{}",
-              "type": "IB Extension",
-              "priority": "critical",
-              "message": "30% IB extension reached",
-              "price": 16265.00
-            }}]
-            ```
-            """.format(symbol.lower(), symbol))
         return
 
     # Filter to recent alerts (last 2 hours)
@@ -507,46 +444,61 @@ def main():
 
         # Refresh settings
         st.markdown("### 🔄 Refresh")
-
         if st.button("🔄 Refresh Now", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
-        auto_refresh_interval = st.selectbox(
-            "Auto-refresh interval",
-            options=[5, 10, 30, 60, 300],
-            format_func=lambda x: f"{x} seconds" if x < 60 else f"{x//60} minutes",
-            index=0
-        )
+        enable_auto_refresh = st.checkbox("Enable Auto-Refresh", value=False)
 
-        st.caption(f"Page will auto-refresh every {auto_refresh_interval} sec")
-
-        st.markdown("---")
-
-        # Visibility toggles - simple checkboxes
-        st.markdown("### 👁️ Show/Hide Sections")
-        show_alerts = st.checkbox("Show Alerts", value=True, key="show_alerts")
-        show_gap = st.checkbox("Show Gap Stats", value=True, key="show_gap")
-        show_ib = st.checkbox("Show Initial Balance", value=False, key="show_ib")
-        show_sp = st.checkbox("Show Single Prints", value=False, key="show_sp")
+        if enable_auto_refresh:
+            refresh_interval = st.selectbox(
+                "Refresh interval",
+                options=[5, 10, 30],
+                format_func=lambda x: f"{x} seconds",
+                index=0
+            )
+            st.caption(f"⏱️ Will refresh every {refresh_interval} sec")
 
         st.markdown("---")
 
-        # Section ordering
-        st.markdown("### 📐 Section Order")
-        st.caption("Drag sections will appear in this order (top to bottom):")
+        # Visibility and ordering
+        st.markdown("### 📐 Section Order & Visibility")
+        st.caption("Use ⬆️⬇️ to reorder sections")
 
-        section_order = st.multiselect(
-            "Select order",
-            options=["Alerts", "Gap Stats", "Initial Balance", "Single Prints"],
-            default=["Alerts", "Gap Stats", "Initial Balance", "Single Prints"],
-            help="Sections appear in the order you arrange them here"
-        )
+        # Section controls
+        for idx, section_name in enumerate(st.session_state.section_order):
+            col1, col2, col3, col4 = st.columns([1, 1, 3, 1])
+
+            with col1:
+                if idx > 0:
+                    if st.button("⬆️", key=f"up_{section_name}"):
+                        # Swap with previous
+                        st.session_state.section_order[idx], st.session_state.section_order[idx-1] = \
+                            st.session_state.section_order[idx-1], st.session_state.section_order[idx]
+                        st.rerun()
+
+            with col2:
+                if idx < len(st.session_state.section_order) - 1:
+                    if st.button("⬇️", key=f"down_{section_name}"):
+                        # Swap with next
+                        st.session_state.section_order[idx], st.session_state.section_order[idx+1] = \
+                            st.session_state.section_order[idx+1], st.session_state.section_order[idx]
+                        st.rerun()
+
+            with col3:
+                st.markdown(f"**{section_name}**")
+
+            with col4:
+                # Visibility checkbox
+                default_visible = section_name in ["Alerts", "Gap Stats"]
+                visible_key = f"show_{section_name.lower().replace(' ', '_')}"
+                if visible_key not in st.session_state:
+                    st.session_state[visible_key] = default_visible
+                st.checkbox("👁️", value=st.session_state[visible_key], key=visible_key, label_visibility="collapsed")
 
         st.markdown("---")
         st.markdown("### ℹ️ About")
         st.caption("Live NQ/ES trading statistics dashboard")
-        st.caption("Data updates: 8:00 AM EST, then every 5 min")
         st.caption("Built with Streamlit")
 
     # Load data files
@@ -555,26 +507,25 @@ def main():
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
 
     # Section mapping
-    section_map = {
-        "Alerts": ("alerts", show_alerts, lambda: render_alerts_block()),
-        "Gap Stats": ("gap", show_gap, lambda: render_gap_block(gap_df)),
-        "Initial Balance": ("ib", show_ib, lambda: render_ib_block(ib_df)),
-        "Single Prints": ("sp", show_sp, lambda: render_single_prints_block(sp_df))
+    section_renderers = {
+        "Alerts": lambda: render_alerts_block(),
+        "Gap Stats": lambda: render_gap_block(gap_df),
+        "Initial Balance": lambda: render_ib_block(ib_df),
+        "Single Prints": lambda: render_single_prints_block(sp_df)
     }
 
     # Render sections in order
-    for section_name in section_order:
-        if section_name in section_map:
-            _, is_visible, render_func = section_map[section_name]
-            if is_visible:
-                with st.container():
-                    render_func()
-                st.markdown("<br>", unsafe_allow_html=True)
+    for section_name in st.session_state.section_order:
+        visible_key = f"show_{section_name.lower().replace(' ', '_')}"
+        if st.session_state.get(visible_key, False):
+            section_renderers[section_name]()
+            st.markdown("<br>", unsafe_allow_html=True)
 
-    # Auto-refresh using st.rerun with timer
-    import time
-    time.sleep(auto_refresh_interval)
-    st.rerun()
+    # Auto-refresh ONLY if enabled
+    if enable_auto_refresh:
+        import time
+        time.sleep(refresh_interval)
+        st.rerun()
 
 if __name__ == "__main__":
     main()
