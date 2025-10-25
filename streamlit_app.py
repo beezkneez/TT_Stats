@@ -134,7 +134,7 @@ def load_single_prints_data(file_path):
         st.error(f"Error loading single prints data: {e}")
         return None
 
-@st.cache_data(ttl=60)  # Refresh alerts every minute
+@st.cache_data(ttl=1)  # Refresh alerts every 1 second
 def load_alerts_data(file_path):
     """Load real-time alerts from Sierra Chart studies"""
     try:
@@ -382,15 +382,34 @@ def render_single_prints_block(df):
 # BLOCK 4: REAL-TIME ALERTS
 # ========================================
 
-def render_alerts_block(df):
-    """Render the Real-Time Alerts block from Sierra Chart studies"""
-    st.markdown('<div class="block-header">🚨 Real-Time Alerts</div>', unsafe_allow_html=True)
+def render_alerts_block():
+    """Render the Real-Time Alerts block from Sierra Chart studies with ES/NQ tabs"""
+    st.markdown('<div class="block-header">🚨 Real-Time Alerts (Updates Every Second)</div>', unsafe_allow_html=True)
 
+    # Current time display
+    is_live, current_time = get_current_market_status()
+    st.caption(f"Last updated: {current_time.strftime('%I:%M:%S %p')} EST")
+
+    # Create tabs for ES and NQ
+    tab_nq, tab_es = st.tabs(["📊 NQ Alerts", "📊 ES Alerts"])
+
+    # NQ Tab
+    with tab_nq:
+        nq_alerts = load_alerts_data(Path(__file__).parent / "alerts_nq.json")
+        render_alert_feed(nq_alerts, "NQ")
+
+    # ES Tab
+    with tab_es:
+        es_alerts = load_alerts_data(Path(__file__).parent / "alerts_es.json")
+        render_alert_feed(es_alerts, "ES")
+
+def render_alert_feed(df, symbol):
+    """Render alert feed for a specific symbol"""
     if df is None:
-        st.markdown('<div class="coming-soon">🚧 Coming Soon<br><small>Waiting for Sierra Chart alert feed</small></div>',
+        st.markdown(f'<div class="coming-soon">🚧 Waiting for {symbol} alerts<br><small>Will show real-time alerts from Sierra Chart</small></div>',
                    unsafe_allow_html=True)
 
-        with st.expander("Preview: What this block will show"):
+        with st.expander(f"Preview: {symbol} Alert Format"):
             st.markdown("""
             **Alert Types:**
             - Gap fill alerts
@@ -404,39 +423,67 @@ def render_alerts_block(df):
             - Message/details
             - Auto-clear old alerts (configurable)
 
-            **Features:**
-            - Sound notifications (optional)
-            - Filter by alert type
-            - Alert history log
+            **Sample JSON Format:**
+            ```json
+            [
+              {
+                "timestamp": "2024-01-15T10:35:22",
+                "symbol": "NQ",
+                "type": "IB Extension",
+                "priority": "critical",
+                "message": "30% IB extension reached at 16265.00",
+                "price": 16265.00
+              }
+            ]
+            ```
             """)
         return
 
     # Filter to recent alerts (last 2 hours)
-    is_live, current_time = get_current_market_status()
     two_hours_ago = datetime.now(pytz.timezone('US/Eastern')) - timedelta(hours=2)
     recent_alerts = df[df['timestamp'] > two_hours_ago].sort_values('timestamp', ascending=False)
 
     if len(recent_alerts) == 0:
-        st.info("No recent alerts")
+        st.info(f"No recent {symbol} alerts (last 2 hours)")
         return
 
+    # Alert count metrics
+    col1, col2, col3 = st.columns(3)
+
+    if 'priority' in recent_alerts.columns:
+        critical_count = len(recent_alerts[recent_alerts['priority'] == 'critical'])
+        warning_count = len(recent_alerts[recent_alerts['priority'] == 'warning'])
+        info_count = len(recent_alerts[recent_alerts['priority'] == 'info'])
+    else:
+        critical_count = 0
+        warning_count = 0
+        info_count = len(recent_alerts)
+
+    col1.metric("🔴 Critical", critical_count)
+    col2.metric("🟡 Warning", warning_count)
+    col3.metric("🔵 Info", info_count)
+
+    st.markdown("---")
+
     # Display alerts
-    for _, alert in recent_alerts.head(10).iterrows():
+    for _, alert in recent_alerts.head(20).iterrows():
         alert_class = {
             'critical': 'alert-critical',
             'warning': 'alert-warning',
             'info': 'alert-info'
         }.get(alert.get('priority', 'info'), 'alert-info')
 
+        price_info = f" @ ${alert['price']:.2f}" if 'price' in alert else ""
+
         st.markdown(f"""
         <div class="alert-box {alert_class}">
-            <strong>{alert['timestamp'].strftime('%I:%M:%S %p')}</strong> - {alert.get('type', 'Alert')}<br>
+            <strong>{alert['timestamp'].strftime('%I:%M:%S %p')}</strong> - {alert.get('type', 'Alert')}{price_info}<br>
             {alert.get('message', 'No message')}
         </div>
         """, unsafe_allow_html=True)
 
     # Show alert count
-    st.caption(f"Showing {min(10, len(recent_alerts))} of {len(recent_alerts)} alerts from last 2 hours")
+    st.caption(f"Showing {min(20, len(recent_alerts))} of {len(recent_alerts)} {symbol} alerts from last 2 hours")
 
 # ========================================
 # MAIN APP
@@ -475,20 +522,20 @@ def main():
         gap_file = st.text_input("Gap Data", value="gap_details.json")
         ib_file = st.text_input("IB Data", value="ib_details.json")
         sp_file = st.text_input("Single Prints", value="single_prints.json")
-        alerts_file = st.text_input("Alerts", value="alerts.json")
+        st.caption("Alerts: alerts_nq.json & alerts_es.json")
 
         st.markdown("---")
 
         # Refresh settings
         st.markdown("### 🔄 Refresh")
-        auto_refresh = st.checkbox("Auto-refresh (5 min)", value=True)
+        auto_refresh = st.checkbox("Auto-refresh", value=True)
 
         if st.button("🔄 Refresh Now", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
         if auto_refresh:
-            st.caption("⏱️ Next refresh in ~5 min")
+            st.caption("⏱️ Stats: 5 min | Alerts: 1 sec")
 
         st.markdown("---")
 
@@ -509,7 +556,6 @@ def main():
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
     ib_df = load_ib_data(Path(__file__).parent / ib_file)
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
-    alerts_df = load_alerts_data(Path(__file__).parent / alerts_file)
 
     # Render blocks
     if show_gap:
@@ -529,13 +575,13 @@ def main():
 
     if show_alerts:
         with st.container():
-            render_alerts_block(alerts_df)
+            render_alerts_block()  # Alerts block loads its own data
         st.markdown("<br>", unsafe_allow_html=True)
 
-    # Auto-refresh implementation
+    # Auto-refresh implementation - 1 second for real-time alerts
     if auto_refresh:
         import time
-        time.sleep(300)  # 5 minutes
+        time.sleep(1)  # 1 second for real-time alerts
         st.rerun()
 
 if __name__ == "__main__":
