@@ -1,0 +1,34 @@
+[
+  {
+    "timestamp": "2024-01-15T11:05:12",
+    "symbol": "ES",
+    "type": "IB Extension",
+    "priority": "critical",
+    "message": "50% IB extension reached - Historical probability to 100%: 72%",
+    "price": 4825.50
+  },
+  {
+    "timestamp": "2024-01-15T10:45:30",
+    "symbol": "ES",
+    "type": "Gap Fill",
+    "priority": "warning",
+    "message": "Gap filled at 4820.25 (45 minutes after open)",
+    "price": 4820.25
+  },
+  {
+    "timestamp": "2024-01-15T10:20:18",
+    "symbol": "ES",
+    "type": "IB Extension",
+    "priority": "info",
+    "message": "30% IB extension reached",
+    "price": 4822.00
+  },
+  {
+    "timestamp": "2024-01-15T09:30:00",
+    "symbol": "ES",
+    "type": "Market Open",
+    "priority": "info",
+    "message": "RTH session opened - Gap: 12 points (Small, Up)",
+    "price": 4818.00
+  }
+]
