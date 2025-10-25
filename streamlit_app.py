@@ -15,6 +15,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize Supabase client
+@st.cache_resource
+def init_supabase():
+    """Initialize Supabase client with credentials from secrets"""
+    try:
+        from supabase import create_client, Client
+        url = st.secrets.get("SUPABASE_URL", "")
+        key = st.secrets.get("SUPABASE_KEY", "")
+
+        if not url or not key:
+            st.warning("⚠️ Supabase credentials not configured. Using local JSON files.")
+            return None
+
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"Failed to connect to Supabase: {e}")
+        return None
+
+supabase = init_supabase()
+
 # Initialize session state for section ordering
 if 'section_order' not in st.session_state:
     st.session_state.section_order = ["Alerts", "Gap Stats", "Initial Balance", "Single Prints"]
@@ -92,9 +112,21 @@ st.markdown("""
 # DATA LOADING FUNCTIONS
 # ========================================
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=5)  # Cache for 5 seconds (real-time data)
 def load_gap_data(file_path):
-    """Load gap details from JSON file"""
+    """Load gap details from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table('gap_details').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            df = pd.DataFrame(data)
+            df['date'] = pd.to_datetime(df['date'])
+            return df
+    except Exception as e:
+        st.warning(f"Supabase error, falling back to JSON: {e}")
+
+    # Fallback to JSON file
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
@@ -104,42 +136,69 @@ def load_gap_data(file_path):
     except Exception as e:
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=5)  # Cache for 5 seconds (real-time data)
 def load_ib_data(file_path):
-    """Load Initial Balance data from JSON file"""
+    """Load Initial Balance data from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table('ib_details').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            return pd.DataFrame(data)
+    except:
+        pass
+
+    # Fallback to JSON file
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
         return pd.DataFrame(data)
-    except FileNotFoundError:
-        return None
-    except Exception as e:
+    except:
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=5)  # Cache for 5 seconds (real-time data)
 def load_single_prints_data(file_path):
-    """Load Single Prints data from JSON file"""
+    """Load Single Prints data from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table('single_prints').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            return pd.DataFrame(data)
+    except:
+        pass
+
+    # Fallback to JSON file
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
         return pd.DataFrame(data)
-    except FileNotFoundError:
-        return None
-    except Exception as e:
+    except:
         return None
 
-@st.cache_data(ttl=5)  # Refresh alerts every 5 seconds
-def load_alerts_data(file_path):
-    """Load real-time alerts from Sierra Chart studies"""
+@st.cache_data(ttl=1)  # Refresh alerts every 1 second
+def load_alerts_data(table_name):
+    """Load real-time alerts from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table(table_name).select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            df = pd.DataFrame(data)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            return df
+    except:
+        pass
+
+    # Fallback to JSON file
+    file_path = f"{table_name}.json"
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
         df = pd.DataFrame(data)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
-    except FileNotFoundError:
-        return None
-    except Exception as e:
+    except:
         return None
 
 # ========================================
@@ -436,13 +495,13 @@ def render_alerts_block():
     # NQ Column (Left)
     with col_nq:
         st.markdown("### 📊 NQ Alerts")
-        nq_alerts = load_alerts_data(Path(__file__).parent / "alerts_nq.json")
+        nq_alerts = load_alerts_data("alerts_nq")
         render_alert_feed(nq_alerts, "NQ")
 
     # ES Column (Right)
     with col_es:
         st.markdown("### 📊 ES Alerts")
-        es_alerts = load_alerts_data(Path(__file__).parent / "alerts_es.json")
+        es_alerts = load_alerts_data("alerts_es")
         render_alert_feed(es_alerts, "ES")
 
 def render_alert_feed(df, symbol):
