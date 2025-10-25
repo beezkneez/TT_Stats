@@ -609,13 +609,17 @@ def main():
         "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df))
     }
 
-    # Render sections in order
-    for section_name in st.session_state.section_order:
-        if section_name in section_config:
-            is_visible, render_func = section_config[section_name]
-            if is_visible:
-                render_func()
-                st.markdown("<br>", unsafe_allow_html=True)
+    # Render sections in order - only render visible sections once
+    visible_sections = [s for s in st.session_state.section_order
+                       if s in section_config and section_config[s][0]]
+
+    for idx, section_name in enumerate(visible_sections):
+        _, render_func = section_config[section_name]
+        render_func()
+
+        # Only add spacing between sections, not after the last one
+        if idx < len(visible_sections) - 1:
+            st.markdown("<br>", unsafe_allow_html=True)
 
     # Auto-refresh ONLY if enabled
     if enable_auto_refresh:
