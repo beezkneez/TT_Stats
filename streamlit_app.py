@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -48,6 +49,13 @@ if 'section_order' not in st.session_state:
 # Initialize session state for dismissed alerts (user-specific, doesn't affect others)
 if 'dismissed_alerts' not in st.session_state:
     st.session_state.dismissed_alerts = set()
+
+# Initialize session state for alert sounds
+if 'sound_enabled' not in st.session_state:
+    st.session_state.sound_enabled = True
+
+if 'seen_alerts' not in st.session_state:
+    st.session_state.seen_alerts = set()
 
 # Custom CSS
 st.markdown("""
@@ -116,6 +124,99 @@ st.markdown("""
         font-size: 1.2rem;
     }
 </style>
+""", unsafe_allow_html=True)
+
+# JavaScript for alert sounds
+st.markdown("""
+<script>
+// Create audio context for generating alert sounds
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+function playAlertSound(priority) {
+    if (!AudioContext) {
+        console.log("Web Audio API not supported");
+        return;
+    }
+
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Different frequencies and durations for each priority
+    if (priority === 'critical') {
+        // High priority: High pitch, longer beep, triple beep
+        oscillator.frequency.value = 1200;
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.15);
+
+        // Second beep
+        setTimeout(() => {
+            const osc2 = audioContext.createOscillator();
+            const gain2 = audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            osc2.frequency.value = 1200;
+            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            osc2.start(audioContext.currentTime);
+            osc2.stop(audioContext.currentTime + 0.15);
+        }, 200);
+
+        // Third beep
+        setTimeout(() => {
+            const osc3 = audioContext.createOscillator();
+            const gain3 = audioContext.createGain();
+            osc3.connect(gain3);
+            gain3.connect(audioContext.destination);
+            osc3.frequency.value = 1200;
+            gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            osc3.start(audioContext.currentTime);
+            osc3.stop(audioContext.currentTime + 0.15);
+        }, 400);
+
+    } else if (priority === 'warning') {
+        // Medium priority: Medium pitch, double beep
+        oscillator.frequency.value = 800;
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.12);
+
+        // Second beep
+        setTimeout(() => {
+            const osc2 = audioContext.createOscillator();
+            const gain2 = audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            osc2.frequency.value = 800;
+            gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+            osc2.start(audioContext.currentTime);
+            osc2.stop(audioContext.currentTime + 0.12);
+        }, 180);
+
+    } else {
+        // Low priority (info): Lower pitch, single short beep
+        oscillator.frequency.value = 500;
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+    }
+}
+
+// Expose function to window for Streamlit to call
+window.playAlertSound = playAlertSound;
+</script>
 """, unsafe_allow_html=True)
 
 # ========================================
@@ -238,6 +339,53 @@ def generate_alert_id(symbol, alert):
     alert_type = alert.get('type', '')
     message = alert.get('message', '')[:50]  # First 50 chars to keep ID reasonable
     return f"{symbol}_{timestamp_str}_{alert_type}_{message}"
+
+def check_and_play_alert_sounds(df, symbol):
+    """Check for new alerts and play sounds if enabled"""
+    if not st.session_state.sound_enabled or df is None or len(df) == 0:
+        return
+
+    # Check each alert to see if it's new
+    new_alerts_by_priority = {'critical': 0, 'warning': 0, 'info': 0}
+
+    for idx, alert in df.iterrows():
+        alert_id = generate_alert_id(symbol, alert)
+
+        # Skip dismissed alerts
+        if alert_id in st.session_state.dismissed_alerts:
+            continue
+
+        # Check if this is a new alert
+        if alert_id not in st.session_state.seen_alerts:
+            st.session_state.seen_alerts.add(alert_id)
+            priority = alert.get('priority', 'info')
+            new_alerts_by_priority[priority] += 1
+
+    # Play sounds for new alerts (play highest priority only to avoid noise)
+    if new_alerts_by_priority['critical'] > 0:
+        components.html("""
+            <script>
+                if (window.playAlertSound) {
+                    window.playAlertSound('critical');
+                }
+            </script>
+        """, height=0)
+    elif new_alerts_by_priority['warning'] > 0:
+        components.html("""
+            <script>
+                if (window.playAlertSound) {
+                    window.playAlertSound('warning');
+                }
+            </script>
+        """, height=0)
+    elif new_alerts_by_priority['info'] > 0:
+        components.html("""
+            <script>
+                if (window.playAlertSound) {
+                    window.playAlertSound('info');
+                }
+            </script>
+        """, height=0)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
@@ -543,6 +691,7 @@ def render_alerts_block():
                 st.rerun()
 
         nq_alerts = load_alerts_data("alerts_nq")
+        check_and_play_alert_sounds(nq_alerts, "NQ")
         render_alert_feed(nq_alerts, "NQ")
 
     # ES Column (Right)
@@ -562,6 +711,7 @@ def render_alerts_block():
                 st.rerun()
 
         es_alerts = load_alerts_data("alerts_es")
+        check_and_play_alert_sounds(es_alerts, "ES")
         render_alert_feed(es_alerts, "ES")
 
 def render_alert_feed(df, symbol):
@@ -671,6 +821,15 @@ def main():
     # Sidebar
     with st.sidebar:
         st.markdown("### ⚙️ Settings")
+
+        # Sound toggle
+        st.session_state.sound_enabled = st.checkbox(
+            "🔊 Alert Sounds",
+            value=st.session_state.sound_enabled,
+            help="Play sounds when new alerts arrive (different tones for each priority)"
+        )
+
+        st.markdown("---")
 
         # Data file paths
         st.markdown("### 📁 Data Sources")
