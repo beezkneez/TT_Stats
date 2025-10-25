@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Supabase Configuration
 SUPABASE_URL = "https://tgphfdxcpstfqqxmeagh.supabase.co"
-SUPABASE_KEY = "your-anon-key-here"  # Replace with your actual anon key from Supabase Dashboard → Settings → API
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRncGhmZHhjcHN0ZnFxeG1lYWdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MTU2MDIsImV4cCI6MjA3Njk5MTYwMn0.Bz4JyDHHh7cB6SZIyyZpKE4gABIdJ6Am8VeRqtLW7A0"  # Replace with your actual anon key from Supabase Dashboard → Settings → API
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -39,10 +39,10 @@ def update_nq_alerts(alerts_list):
             'data': alerts_list
         }).execute()
 
-        print(f"✅ Updated NQ alerts: {len(alerts_list)} alerts")
+        print(f"[OK] Updated NQ alerts: {len(alerts_list)} alerts")
         return True
     except Exception as e:
-        print(f"❌ Error updating NQ alerts: {e}")
+        print(f"[ERROR] Error updating NQ alerts: {e}")
         return False
 
 
@@ -54,10 +54,10 @@ def update_es_alerts(alerts_list):
             'data': alerts_list
         }).execute()
 
-        print(f"✅ Updated ES alerts: {len(alerts_list)} alerts")
+        print(f"[OK] Updated ES alerts: {len(alerts_list)} alerts")
         return True
     except Exception as e:
-        print(f"❌ Error updating ES alerts: {e}")
+        print(f"[ERROR] Error updating ES alerts: {e}")
         return False
 
 
@@ -74,10 +74,10 @@ def update_gap_details(gap_data_list):
             'data': gap_data_list
         }).execute()
 
-        print(f"✅ Updated gap details: {len(gap_data_list)} records")
+        print(f"[OK] Updated gap details: {len(gap_data_list)} records")
         return True
     except Exception as e:
-        print(f"❌ Error updating gap details: {e}")
+        print(f"[ERROR] Error updating gap details: {e}")
         return False
 
 
@@ -89,10 +89,10 @@ def update_ib_details(ib_data_list):
             'data': ib_data_list
         }).execute()
 
-        print(f"✅ Updated IB details: {len(ib_data_list)} records")
+        print(f"[OK] Updated IB details: {len(ib_data_list)} records")
         return True
     except Exception as e:
-        print(f"❌ Error updating IB details: {e}")
+        print(f"[ERROR] Error updating IB details: {e}")
         return False
 
 
@@ -104,10 +104,10 @@ def update_single_prints(single_prints_list):
             'data': single_prints_list
         }).execute()
 
-        print(f"✅ Updated single prints: {len(single_prints_list)} records")
+        print(f"[OK] Updated single prints: {len(single_prints_list)} records")
         return True
     except Exception as e:
-        print(f"❌ Error updating single prints: {e}")
+        print(f"[ERROR] Error updating single prints: {e}")
         return False
 
 
@@ -127,5 +127,5 @@ if __name__ == "__main__":
 
     update_nq_alerts(sample_alerts)
 
-    print("\n✅ Test complete! Check your Streamlit dashboard to see the alert.")
-    print("💡 Tip: Run this script every second/minute from Sierra Chart to update in real-time")
+    print("\n[OK] Test complete! Check your Streamlit dashboard to see the alert.")
+    print("[TIP] Run this script every second/minute from Sierra Chart to update in real-time")
