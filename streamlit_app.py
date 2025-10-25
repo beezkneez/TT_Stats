@@ -384,7 +384,7 @@ def render_single_prints_block(df):
 
 def render_alerts_block():
     """Render the Real-Time Alerts block from Sierra Chart studies with ES/NQ tabs"""
-    st.markdown('<div class="block-header">🚨 Real-Time Alerts (Updates Every Second)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="block-header">🚨 Real-Time Alerts (Updates Every 5 Seconds)</div>', unsafe_allow_html=True)
 
     # Current time display
     is_live, current_time = get_current_market_status()
@@ -535,7 +535,7 @@ def main():
             st.rerun()
 
         if auto_refresh:
-            st.caption("⏱️ Stats: 5 min | Alerts: 1 sec")
+            st.caption("⏱️ Stats: 5 min | Alerts: 5 sec")
 
         st.markdown("---")
 
@@ -578,10 +578,17 @@ def main():
             render_alerts_block()  # Alerts block loads its own data
         st.markdown("<br>", unsafe_allow_html=True)
 
-    # Auto-refresh implementation - 1 second for real-time alerts
-    if auto_refresh:
+    # Auto-refresh implementation
+    # Note: Alert data has 1-sec cache TTL, but UI refreshes every 5 sec
+    if auto_refresh and show_alerts:
+        # Refresh every 5 seconds when alerts are visible
         import time
-        time.sleep(1)  # 1 second for real-time alerts
+        time.sleep(5)
+        st.rerun()
+    elif auto_refresh:
+        # If alerts hidden, use 5 min refresh for stats only
+        import time
+        time.sleep(300)
         st.rerun()
 
 if __name__ == "__main__":
