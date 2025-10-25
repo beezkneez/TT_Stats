@@ -309,12 +309,14 @@ def render_ib_block(df):
     """Render the Initial Balance Statistics block"""
     st.markdown('<div class="block-header">⏰ Initial Balance (9:30-10:30 EST)</div>', unsafe_allow_html=True)
 
-    if df is None:
+    if df is None or len(df) == 0:
         st.markdown('<div class="coming-soon">🚧 Coming Soon<br><small>Waiting for IB data feed from Sierra Chart</small></div>',
                    unsafe_allow_html=True)
         return
 
-    st.info("IB data loaded - rendering statistics...")
+    # Show IB data when available
+    st.success(f"✅ Loaded {len(df)} IB records")
+    st.json(df.head(3).to_dict(orient='records'))
 
 # ========================================
 # BLOCK 3: SINGLE PRINTS
@@ -324,12 +326,14 @@ def render_single_prints_block(df):
     """Render the Single Prints Statistics block"""
     st.markdown('<div class="block-header">📍 Single Prints Analysis</div>', unsafe_allow_html=True)
 
-    if df is None:
+    if df is None or len(df) == 0:
         st.markdown('<div class="coming-soon">🚧 Coming Soon<br><small>Waiting for single prints data feed</small></div>',
                    unsafe_allow_html=True)
         return
 
-    st.info("Single prints data loaded - rendering statistics...")
+    # Show single prints data when available
+    st.success(f"✅ Loaded {len(df)} single print levels")
+    st.json(df.head(5).to_dict(orient='records'))
 
 # ========================================
 # BLOCK 4: REAL-TIME ALERTS
