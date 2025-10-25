@@ -383,60 +383,48 @@ def render_single_prints_block(df):
 # ========================================
 
 def render_alerts_block():
-    """Render the Real-Time Alerts block from Sierra Chart studies with ES/NQ tabs"""
+    """Render the Real-Time Alerts block from Sierra Chart studies with NQ/ES side-by-side"""
     st.markdown('<div class="block-header">🚨 Real-Time Alerts (Updates Every 5 Seconds)</div>', unsafe_allow_html=True)
 
     # Current time display
     is_live, current_time = get_current_market_status()
     st.caption(f"Last updated: {current_time.strftime('%I:%M:%S %p')} EST")
 
-    # Create tabs for ES and NQ
-    tab_nq, tab_es = st.tabs(["📊 NQ Alerts", "📊 ES Alerts"])
+    # Side-by-side columns for NQ and ES
+    col_nq, col_es = st.columns(2)
 
-    # NQ Tab
-    with tab_nq:
+    # NQ Column (Left)
+    with col_nq:
+        st.markdown("### 📊 NQ Alerts")
         nq_alerts = load_alerts_data(Path(__file__).parent / "alerts_nq.json")
         render_alert_feed(nq_alerts, "NQ")
 
-    # ES Tab
-    with tab_es:
+    # ES Column (Right)
+    with col_es:
+        st.markdown("### 📊 ES Alerts")
         es_alerts = load_alerts_data(Path(__file__).parent / "alerts_es.json")
         render_alert_feed(es_alerts, "ES")
 
 def render_alert_feed(df, symbol):
     """Render alert feed for a specific symbol"""
     if df is None:
-        st.markdown(f'<div class="coming-soon">🚧 Waiting for {symbol} alerts<br><small>Will show real-time alerts from Sierra Chart</small></div>',
-                   unsafe_allow_html=True)
+        st.info(f"⏳ Waiting for {symbol} alerts")
+        with st.expander(f"ℹ️ {symbol} Alert Format"):
+            st.caption("""
+            **Expected file:** alerts_{}.json
 
-        with st.expander(f"Preview: {symbol} Alert Format"):
-            st.markdown("""
-            **Alert Types:**
-            - Gap fill alerts
-            - IB extension triggers (30%, 50%, 100%)
-            - Single print fills
-            - Custom study alerts
-
-            **Alert Display:**
-            - Timestamp
-            - Alert type/priority
-            - Message/details
-            - Auto-clear old alerts (configurable)
-
-            **Sample JSON Format:**
+            **Sample format:**
             ```json
-            [
-              {
-                "timestamp": "2024-01-15T10:35:22",
-                "symbol": "NQ",
-                "type": "IB Extension",
-                "priority": "critical",
-                "message": "30% IB extension reached at 16265.00",
-                "price": 16265.00
-              }
-            ]
+            [{{
+              "timestamp": "2024-01-15T10:35:22",
+              "symbol": "{}",
+              "type": "IB Extension",
+              "priority": "critical",
+              "message": "30% IB extension reached",
+              "price": 16265.00
+            }}]
             ```
-            """)
+            """.format(symbol.lower(), symbol))
         return
 
     # Filter to recent alerts (last 2 hours)
@@ -444,12 +432,10 @@ def render_alert_feed(df, symbol):
     recent_alerts = df[df['timestamp'] > two_hours_ago].sort_values('timestamp', ascending=False)
 
     if len(recent_alerts) == 0:
-        st.info(f"No recent {symbol} alerts (last 2 hours)")
+        st.info(f"No recent {symbol} alerts")
         return
 
-    # Alert count metrics
-    col1, col2, col3 = st.columns(3)
-
+    # Alert count metrics - more compact for side-by-side
     if 'priority' in recent_alerts.columns:
         critical_count = len(recent_alerts[recent_alerts['priority'] == 'critical'])
         warning_count = len(recent_alerts[recent_alerts['priority'] == 'warning'])
@@ -459,14 +445,11 @@ def render_alert_feed(df, symbol):
         warning_count = 0
         info_count = len(recent_alerts)
 
-    col1.metric("🔴 Critical", critical_count)
-    col2.metric("🟡 Warning", warning_count)
-    col3.metric("🔵 Info", info_count)
-
+    st.caption(f"🔴 {critical_count} | 🟡 {warning_count} | 🔵 {info_count} | Total: {len(recent_alerts)}")
     st.markdown("---")
 
-    # Display alerts
-    for _, alert in recent_alerts.head(20).iterrows():
+    # Display alerts - more compact
+    for _, alert in recent_alerts.head(15).iterrows():
         alert_class = {
             'critical': 'alert-critical',
             'warning': 'alert-warning',
@@ -477,13 +460,14 @@ def render_alert_feed(df, symbol):
 
         st.markdown(f"""
         <div class="alert-box {alert_class}">
-            <strong>{alert['timestamp'].strftime('%I:%M:%S %p')}</strong> - {alert.get('type', 'Alert')}{price_info}<br>
-            {alert.get('message', 'No message')}
+            <strong>{alert['timestamp'].strftime('%I:%M:%S')}</strong> - {alert.get('type', 'Alert')}{price_info}<br>
+            <small>{alert.get('message', 'No message')}</small>
         </div>
         """, unsafe_allow_html=True)
 
     # Show alert count
-    st.caption(f"Showing {min(20, len(recent_alerts))} of {len(recent_alerts)} {symbol} alerts from last 2 hours")
+    if len(recent_alerts) > 15:
+        st.caption(f"Showing 15 of {len(recent_alerts)} alerts (last 2 hrs)")
 
 # ========================================
 # MAIN APP
@@ -539,12 +523,24 @@ def main():
 
         st.markdown("---")
 
-        # Block visibility
-        st.markdown("### 👁️ Visible Blocks")
-        show_gap = st.checkbox("Gap Stats", value=True)
-        show_ib = st.checkbox("Initial Balance", value=True)
-        show_sp = st.checkbox("Single Prints", value=True)
-        show_alerts = st.checkbox("Real-Time Alerts", value=True)
+        # Block ordering and visibility
+        st.markdown("### 📐 Section Order & Visibility")
+        st.caption("Set the order (1-4) for each section. Lower numbers appear first.")
+
+        # Default order: Alerts=1, Gap=2, IB=3, SP=4
+        alerts_order = st.number_input("🚨 Alerts", min_value=1, max_value=4, value=1, step=1, key="alerts_order")
+        gap_order = st.number_input("📈 Gap Stats", min_value=1, max_value=4, value=2, step=1, key="gap_order")
+        ib_order = st.number_input("⏰ Initial Balance", min_value=1, max_value=4, value=3, step=1, key="ib_order")
+        sp_order = st.number_input("📍 Single Prints", min_value=1, max_value=4, value=4, step=1, key="sp_order")
+
+        st.markdown("---")
+
+        # Visibility toggles
+        st.markdown("### 👁️ Show/Hide Sections")
+        show_alerts = st.checkbox("Show Alerts", value=True)
+        show_gap = st.checkbox("Show Gap Stats", value=True)
+        show_ib = st.checkbox("Show Initial Balance", value=True)
+        show_sp = st.checkbox("Show Single Prints", value=True)
 
         st.markdown("---")
         st.markdown("### ℹ️ About")
@@ -557,25 +553,44 @@ def main():
     ib_df = load_ib_data(Path(__file__).parent / ib_file)
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
 
-    # Render blocks
-    if show_gap:
-        with st.container():
-            render_gap_block(gap_df)
-        st.markdown("<br>", unsafe_allow_html=True)
-
-    if show_ib:
-        with st.container():
-            render_ib_block(ib_df)
-        st.markdown("<br>", unsafe_allow_html=True)
-
-    if show_sp:
-        with st.container():
-            render_single_prints_block(sp_df)
-        st.markdown("<br>", unsafe_allow_html=True)
+    # Create block dictionary with order and render functions
+    blocks = []
 
     if show_alerts:
+        blocks.append({
+            'order': alerts_order,
+            'name': 'alerts',
+            'render': lambda: render_alerts_block()
+        })
+
+    if show_gap:
+        blocks.append({
+            'order': gap_order,
+            'name': 'gap',
+            'render': lambda df=gap_df: render_gap_block(df)
+        })
+
+    if show_ib:
+        blocks.append({
+            'order': ib_order,
+            'name': 'ib',
+            'render': lambda df=ib_df: render_ib_block(df)
+        })
+
+    if show_sp:
+        blocks.append({
+            'order': sp_order,
+            'name': 'sp',
+            'render': lambda df=sp_df: render_single_prints_block(df)
+        })
+
+    # Sort blocks by order
+    blocks.sort(key=lambda x: x['order'])
+
+    # Render blocks in order
+    for block in blocks:
         with st.container():
-            render_alerts_block()  # Alerts block loads its own data
+            block['render']()
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Auto-refresh implementation
