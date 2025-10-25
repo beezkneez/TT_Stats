@@ -113,35 +113,19 @@ def update_single_prints(single_prints_list):
 
 # Example usage
 if __name__ == "__main__":
-    # Example: Update NQ alerts with multiple test alerts
+    # Example: Update NQ alerts
     sample_alerts = [
         {
             "timestamp": datetime.now().isoformat(),
             "symbol": "NQ",
-            "type": "Test Alert",
+            "type": "Test Alert 2",
             "priority": "info",
             "message": "This is a test alert from Python",
-            "price": 20500.00
-        },
-        {
-            "timestamp": datetime.now().isoformat(),
-            "symbol": "NQ",
-            "type": "Prior Month High",
-            "priority": "critical",
-            "message": "NQ reached prior month high - potential resistance",
-            "price": 21450.75
-        },
-        {
-            "timestamp": datetime.now().isoformat(),
-            "symbol": "NQ",
-            "type": "IB Extension",
-            "priority": "warning",
-            "message": "30% IB extension reached - watch for reversal",
-            "price": 20565.50
+            "price": 20900.00
         }
     ]
 
     update_nq_alerts(sample_alerts)
 
-    print("\n[OK] Test complete! Added 3 alerts to NQ feed.")
+    print("\n[OK] Test complete! Check your Streamlit dashboard to see the alert.")
     print("[TIP] Run this script every second/minute from Sierra Chart to update in real-time")

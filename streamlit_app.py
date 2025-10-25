@@ -904,10 +904,10 @@ def main():
 
         # Data file paths
         st.markdown("### 📁 Data Sources")
-        gap_file = st.text_input("Gap Data", value="gap_details.json")
-        ib_file = st.text_input("IB Data", value="ib_details.json")
-        sp_file = st.text_input("Single Prints", value="single_prints.json")
-        st.caption("Alerts: alerts_nq.json & alerts_es.json")
+        gap_file = st.text_input("Gap Data", value="data/gap_details.json")
+        ib_file = st.text_input("IB Data", value="data/ib_details.json")
+        sp_file = st.text_input("Single Prints", value="data/single_prints.json")
+        st.caption("Alerts: data/alerts_nq.json & data/alerts_es.json")
 
         st.markdown("---")
 
