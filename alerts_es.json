@@ -1,0 +1,66 @@
+[
+  {
+    "timestamp": "2025-10-25T14:42:18",
+    "symbol": "ES",
+    "type": "Price Level",
+    "priority": "critical",
+    "message": "Breaking above prior day high (5945.75) - potential breakout",
+    "price": 5947.25
+  },
+  {
+    "timestamp": "2025-10-25T14:20:33",
+    "symbol": "ES",
+    "type": "IB Extension",
+    "priority": "critical",
+    "message": "100% IB extension reached at 5948.00",
+    "price": 5948.00
+  },
+  {
+    "timestamp": "2025-10-25T13:55:12",
+    "symbol": "ES",
+    "type": "Single Print",
+    "priority": "info",
+    "message": "Single print filled at 5935.50 (age: 3 days)",
+    "price": 5935.50
+  },
+  {
+    "timestamp": "2025-10-25T12:10:45",
+    "symbol": "ES",
+    "type": "IB Extension",
+    "priority": "warning",
+    "message": "50% IB extension reached - Historical probability to 100%: 65%",
+    "price": 5942.00
+  },
+  {
+    "timestamp": "2025-10-25T11:05:20",
+    "symbol": "ES",
+    "type": "Gap Fill",
+    "priority": "info",
+    "message": "Gap filled at 5928.25 (95 minutes after open)",
+    "price": 5928.25
+  },
+  {
+    "timestamp": "2025-10-25T10:30:00",
+    "symbol": "ES",
+    "type": "Initial Balance",
+    "priority": "info",
+    "message": "IB Complete: Range = 12.75 pts (28.1% of ATR). High: 5938.50, Low: 5925.75",
+    "price": 5938.50
+  },
+  {
+    "timestamp": "2025-10-25T09:45:15",
+    "symbol": "ES",
+    "type": "Single Print",
+    "priority": "warning",
+    "message": "New single print formed at 5930.00",
+    "price": 5930.00
+  },
+  {
+    "timestamp": "2025-10-25T09:30:00",
+    "symbol": "ES",
+    "type": "Market Open",
+    "priority": "info",
+    "message": "RTH session opened - Gap: 8.25 points (Small, Up) - 18.2% of ATR",
+    "price": 5926.00
+  }
+]

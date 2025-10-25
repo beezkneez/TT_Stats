@@ -1,0 +1,66 @@
+[
+  {
+    "timestamp": "2025-10-25T14:35:22",
+    "symbol": "NQ",
+    "type": "Price Level",
+    "priority": "critical",
+    "message": "Price approaching prior day high (20585.00) - currently 20 points away",
+    "price": 20565.00
+  },
+  {
+    "timestamp": "2025-10-25T14:15:45",
+    "symbol": "NQ",
+    "type": "IB Extension",
+    "priority": "critical",
+    "message": "50% IB extension reached - Historical probability to 100%: 68%",
+    "price": 20575.50
+  },
+  {
+    "timestamp": "2025-10-25T13:45:30",
+    "symbol": "NQ",
+    "type": "Single Print",
+    "priority": "warning",
+    "message": "Price approaching single print at 20550.00 (5 points away)",
+    "price": 20555.00
+  },
+  {
+    "timestamp": "2025-10-25T11:20:15",
+    "symbol": "NQ",
+    "type": "IB Extension",
+    "priority": "warning",
+    "message": "30% IB extension reached - Historical probability to 50%: 72%",
+    "price": 20565.00
+  },
+  {
+    "timestamp": "2025-10-25T10:45:00",
+    "symbol": "NQ",
+    "type": "Gap Fill",
+    "priority": "info",
+    "message": "Gap filled at 20535.25 (75 minutes after open)",
+    "price": 20535.25
+  },
+  {
+    "timestamp": "2025-10-25T10:30:00",
+    "symbol": "NQ",
+    "type": "Initial Balance",
+    "priority": "info",
+    "message": "IB Complete: Range = 42.5 pts (23.6% of ATR). High: 20560.25, Low: 20517.75",
+    "price": 20560.25
+  },
+  {
+    "timestamp": "2025-10-25T10:05:30",
+    "symbol": "NQ",
+    "type": "Gap Fill",
+    "priority": "warning",
+    "message": "Price within 10 points of gap fill target (20535.25)",
+    "price": 20545.00
+  },
+  {
+    "timestamp": "2025-10-25T09:30:00",
+    "symbol": "NQ",
+    "type": "Market Open",
+    "priority": "info",
+    "message": "RTH session opened - Gap: 38.5 points (Medium, Up) - 21.4% of ATR",
+    "price": 20520.00
+  }
+]
