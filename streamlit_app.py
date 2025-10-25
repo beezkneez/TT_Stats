@@ -526,12 +526,18 @@ def main():
         # Block ordering and visibility
         st.markdown("### 📐 Section Order & Visibility")
         st.caption("Set the order (1-4) for each section. Lower numbers appear first.")
+        st.caption("⚠️ Each section must have a unique number!")
 
         # Default order: Alerts=1, Gap=2, IB=3, SP=4
         alerts_order = st.number_input("🚨 Alerts", min_value=1, max_value=4, value=1, step=1, key="alerts_order")
         gap_order = st.number_input("📈 Gap Stats", min_value=1, max_value=4, value=2, step=1, key="gap_order")
         ib_order = st.number_input("⏰ Initial Balance", min_value=1, max_value=4, value=3, step=1, key="ib_order")
         sp_order = st.number_input("📍 Single Prints", min_value=1, max_value=4, value=4, step=1, key="sp_order")
+
+        # Check for duplicates
+        order_values = [alerts_order, gap_order, ib_order, sp_order]
+        if len(order_values) != len(set(order_values)):
+            st.warning("⚠️ Duplicate order numbers detected! Sections may overlap.")
 
         st.markdown("---")
 
@@ -584,14 +590,17 @@ def main():
             'render': lambda df=sp_df: render_single_prints_block(df)
         })
 
-    # Sort blocks by order
-    blocks.sort(key=lambda x: x['order'])
+    # Sort blocks by order, then by name for stable sorting
+    blocks.sort(key=lambda x: (x['order'], x['name']))
 
-    # Render blocks in order
+    # Render blocks in order (only render each once)
+    rendered_names = set()
     for block in blocks:
-        with st.container():
-            block['render']()
-        st.markdown("<br>", unsafe_allow_html=True)
+        if block['name'] not in rendered_names:
+            with st.container():
+                block['render']()
+            st.markdown("<br>", unsafe_allow_html=True)
+            rendered_names.add(block['name'])
 
     # Auto-refresh implementation
     # Note: Alert data has 1-sec cache TTL, but UI refreshes every 5 sec
