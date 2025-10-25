@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-10-25T09:30:00",
+  "symbol": "NQ",
+  "volatility": {
+    "rvol": 1.35,
+    "rvol_percentile": 72,
+    "atr_daily": 285.5,
+    "atr_weekly": 412.3,
+    "vix": 18.45,
+    "vix_trend": "rising"
+  },
+  "range_metrics": {
+    "weekly_range": 1250.75,
+    "weekly_range_pct_atr": 3.03,
+    "daily_range_avg_5d": 245.8,
+    "current_day_range": 125.25,
+    "range_expansion": false
+  },
+  "market_conditions": {
+    "regime": "normal",
+    "trend": "choppy",
+    "volume_profile": "average"
+  }
+}

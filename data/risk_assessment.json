@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-10-25T09:30:00",
+  "overall_risk_level": "medium",
+  "risk_score": 6.5,
+  "recommended_position_size": "50%",
+  "factors": {
+    "volatility_risk": {
+      "level": "medium-high",
+      "score": 7,
+      "reason": "Rvol at 1.35 (72nd percentile) - elevated volatility"
+    },
+    "range_risk": {
+      "level": "low",
+      "score": 3,
+      "reason": "Weekly range 303% of ATR - normal expansion"
+    },
+    "vix_risk": {
+      "level": "medium",
+      "score": 6,
+      "reason": "VIX at 18.45 and rising - moderate fear"
+    },
+    "trend_risk": {
+      "level": "high",
+      "score": 8,
+      "reason": "Choppy market - no clear trend"
+    }
+  },
+  "recommendations": [
+    "Consider smaller position sizes due to elevated Rvol",
+    "Wait for clearer trend before increasing risk",
+    "Use wider stops to accommodate volatility",
+    "Focus on mean reversion strategies in choppy conditions"
+  ],
+  "suggested_strategies": [
+    "Range trading",
+    "Fade extremes",
+    "Reduce directional bias"
+  ]
+}

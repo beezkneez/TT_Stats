@@ -63,12 +63,28 @@ CREATE TABLE single_prints (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Table for Market Environment
+CREATE TABLE market_environment (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for Risk Assessment
+CREATE TABLE risk_assessment (
+  id BIGSERIAL PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert initial empty data
 INSERT INTO alerts_nq (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO alerts_es (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO gap_details (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO ib_details (id, data) VALUES (1, '[]'::jsonb);
 INSERT INTO single_prints (id, data) VALUES (1, '[]'::jsonb);
+INSERT INTO market_environment (id, data) VALUES (1, '{}'::jsonb);
+INSERT INTO risk_assessment (id, data) VALUES (1, '{}'::jsonb);
 ```
 
 3. Click **"Run"**
