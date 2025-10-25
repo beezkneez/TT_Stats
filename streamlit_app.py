@@ -331,74 +331,108 @@ def check_and_play_alert_sounds(df, symbol):
         sound_to_play = 'info'
 
     if sound_to_play:
-        # Play sound using self-contained component
+        # Build custom sound data URLs from session state
+        high_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['high']}`" if st.session_state.custom_sounds['high'] else 'null'
+        medium_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['medium']}`" if st.session_state.custom_sounds['medium'] else 'null'
+        low_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['low']}`" if st.session_state.custom_sounds['low'] else 'null'
+
+        custom_sounds_js = f"""
+            const customSounds = {{
+                high: {high_sound_data},
+                medium: {medium_sound_data},
+                low: {low_sound_data}
+            }};
+        """
+
+        # Play sound using self-contained component with custom sound support
         components.html(f"""
             <script>
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                {custom_sounds_js}
 
                 const priority = '{sound_to_play}';
 
-                if (priority === 'critical') {{
-                    oscillator.frequency.value = 1200;
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.15);
+                // Map priority to custom sound key
+                const priorityMap = {{'critical': 'high', 'warning': 'medium', 'info': 'low'}};
+                const soundKey = priorityMap[priority];
+                const customSound = customSounds[soundKey];
 
-                    setTimeout(() => {{
-                        const osc2 = audioContext.createOscillator();
-                        const gain2 = audioContext.createGain();
-                        osc2.connect(gain2);
-                        gain2.connect(audioContext.destination);
-                        osc2.frequency.value = 1200;
-                        gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                        osc2.start(audioContext.currentTime);
-                        osc2.stop(audioContext.currentTime + 0.15);
-                    }}, 200);
-
-                    setTimeout(() => {{
-                        const osc3 = audioContext.createOscillator();
-                        const gain3 = audioContext.createGain();
-                        osc3.connect(gain3);
-                        gain3.connect(audioContext.destination);
-                        osc3.frequency.value = 1200;
-                        gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                        osc3.start(audioContext.currentTime);
-                        osc3.stop(audioContext.currentTime + 0.15);
-                    }}, 400);
-
-                }} else if (priority === 'warning') {{
-                    oscillator.frequency.value = 800;
-                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.12);
-
-                    setTimeout(() => {{
-                        const osc2 = audioContext.createOscillator();
-                        const gain2 = audioContext.createGain();
-                        osc2.connect(gain2);
-                        gain2.connect(audioContext.destination);
-                        osc2.frequency.value = 800;
-                        gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
-                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-                        osc2.start(audioContext.currentTime);
-                        osc2.stop(audioContext.currentTime + 0.12);
-                    }}, 180);
-
+                // Try to play custom sound first
+                if (customSound) {{
+                    const audio = new Audio(customSound);
+                    audio.volume = 0.7;
+                    audio.play().catch(e => {{
+                        console.log('Custom audio play failed, falling back to beep:', e);
+                        playBeep();
+                    }});
                 }} else {{
-                    oscillator.frequency.value = 500;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.1);
+                    playBeep();
+                }}
+
+                function playBeep() {{
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    if (priority === 'critical') {{
+                        oscillator.frequency.value = 1200;
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.15);
+
+                        setTimeout(() => {{
+                            const osc2 = audioContext.createOscillator();
+                            const gain2 = audioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(audioContext.destination);
+                            osc2.frequency.value = 1200;
+                            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                            osc2.start(audioContext.currentTime);
+                            osc2.stop(audioContext.currentTime + 0.15);
+                        }}, 200);
+
+                        setTimeout(() => {{
+                            const osc3 = audioContext.createOscillator();
+                            const gain3 = audioContext.createGain();
+                            osc3.connect(gain3);
+                            gain3.connect(audioContext.destination);
+                            osc3.frequency.value = 1200;
+                            gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                            osc3.start(audioContext.currentTime);
+                            osc3.stop(audioContext.currentTime + 0.15);
+                        }}, 400);
+
+                    }} else if (priority === 'warning') {{
+                        oscillator.frequency.value = 800;
+                        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.12);
+
+                        setTimeout(() => {{
+                            const osc2 = audioContext.createOscillator();
+                            const gain2 = audioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(audioContext.destination);
+                            osc2.frequency.value = 800;
+                            gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
+                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                            osc2.start(audioContext.currentTime);
+                            osc2.stop(audioContext.currentTime + 0.12);
+                        }}, 180);
+
+                    }} else {{
+                        oscillator.frequency.value = 500;
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                    }}
                 }}
             </script>
         """, height=0)
