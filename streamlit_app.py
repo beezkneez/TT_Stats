@@ -331,73 +331,32 @@ def check_and_play_alert_sounds(df, symbol):
         sound_to_play = 'info'
 
     if sound_to_play:
-        # Play sound using simple beeps (custom sounds only work in test buttons for now)
+        # Determine beep count and frequency based on priority
+        beep_config = {
+            'critical': (3, 1200),  # 3 beeps at 1200Hz
+            'warning': (2, 800),    # 2 beeps at 800Hz
+            'info': (1, 500)        # 1 beep at 500Hz
+        }
+        count, freq = beep_config.get(sound_to_play, (1, 500))
+
+        # Play beeps using the same logic as test buttons
         components.html(f"""
             <script>
-                const priority = '{sound_to_play}';
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                if (priority === 'critical') {{
-                        oscillator.frequency.value = 1200;
-                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                        oscillator.start(audioContext.currentTime);
-                        oscillator.stop(audioContext.currentTime + 0.15);
-
-                        setTimeout(() => {{
-                            const osc2 = audioContext.createOscillator();
-                            const gain2 = audioContext.createGain();
-                            osc2.connect(gain2);
-                            gain2.connect(audioContext.destination);
-                            osc2.frequency.value = 1200;
-                            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                            osc2.start(audioContext.currentTime);
-                            osc2.stop(audioContext.currentTime + 0.15);
-                        }}, 200);
-
-                        setTimeout(() => {{
-                            const osc3 = audioContext.createOscillator();
-                            const gain3 = audioContext.createGain();
-                            osc3.connect(gain3);
-                            gain3.connect(audioContext.destination);
-                            osc3.frequency.value = 1200;
-                            gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
-                            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                            osc3.start(audioContext.currentTime);
-                            osc3.stop(audioContext.currentTime + 0.15);
-                        }}, 400);
-
-                    }} else if (priority === 'warning') {{
-                        oscillator.frequency.value = 800;
-                        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-                        oscillator.start(audioContext.currentTime);
-                        oscillator.stop(audioContext.currentTime + 0.12);
-
-                        setTimeout(() => {{
-                            const osc2 = audioContext.createOscillator();
-                            const gain2 = audioContext.createGain();
-                            osc2.connect(gain2);
-                            gain2.connect(audioContext.destination);
-                            osc2.frequency.value = 800;
-                            gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
-                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-                            osc2.start(audioContext.currentTime);
-                            osc2.stop(audioContext.currentTime + 0.12);
-                        }}, 180);
-
-                }} else {{
-                    oscillator.frequency.value = 500;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.1);
+                const count = {count};
+                const freq = {freq};
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                for (let i = 0; i < count; i++) {{
+                    setTimeout(() => {{
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                        osc.start(ctx.currentTime);
+                        osc.stop(ctx.currentTime + 0.15);
+                    }}, i * 200);
                 }}
             </script>
         """, height=0)
@@ -1085,11 +1044,6 @@ def main():
                     }
                 </script>
             """, height=60)
-
-            st.caption("To test full alert flow (alert appears + sound plays):")
-            st.code("python scripts/test_high_alert.py", language="bash")
-            st.code("python scripts/test_medium_alert.py", language="bash")
-            st.code("python scripts/test_low_alert.py", language="bash")
 
         st.markdown("---")
 
