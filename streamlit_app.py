@@ -45,6 +45,10 @@ supabase = init_supabase()
 if 'section_order' not in st.session_state:
     st.session_state.section_order = ["Alerts", "Gap Stats", "Initial Balance", "Single Prints"]
 
+# Initialize session state for dismissed alerts (user-specific, doesn't affect others)
+if 'dismissed_alerts' not in st.session_state:
+    st.session_state.dismissed_alerts = set()
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -516,13 +520,39 @@ def render_alerts_block():
 
     # NQ Column (Left)
     with col_nq:
-        st.markdown("### 📊 NQ Alerts")
+        # Header with Clear All button
+        col_header, col_btn = st.columns([3, 1])
+        with col_header:
+            st.markdown("### 📊 NQ Alerts")
+        with col_btn:
+            if st.button("🗑️ Clear All", key="clear_nq", help="Clear all NQ alerts (only for you)", use_container_width=True):
+                # Mark all current NQ alerts as dismissed
+                nq_data = load_alerts_data("alerts_nq")
+                if nq_data is not None:
+                    for _, alert in nq_data.iterrows():
+                        alert_id = f"NQ_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+                        st.session_state.dismissed_alerts.add(alert_id)
+                st.rerun()
+
         nq_alerts = load_alerts_data("alerts_nq")
         render_alert_feed(nq_alerts, "NQ")
 
     # ES Column (Right)
     with col_es:
-        st.markdown("### 📊 ES Alerts")
+        # Header with Clear All button
+        col_header, col_btn = st.columns([3, 1])
+        with col_header:
+            st.markdown("### 📊 ES Alerts")
+        with col_btn:
+            if st.button("🗑️ Clear All", key="clear_es", help="Clear all ES alerts (only for you)", use_container_width=True):
+                # Mark all current ES alerts as dismissed
+                es_data = load_alerts_data("alerts_es")
+                if es_data is not None:
+                    for _, alert in es_data.iterrows():
+                        alert_id = f"ES_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+                        st.session_state.dismissed_alerts.add(alert_id)
+                st.rerun()
+
         es_alerts = load_alerts_data("alerts_es")
         render_alert_feed(es_alerts, "ES")
 
@@ -546,25 +576,38 @@ def render_alert_feed(df, symbol):
         recent_alerts = df.sort_values('timestamp', ascending=False).head(15)
         st.caption(f"ℹ️ No alerts in last 2 hours - showing most recent {len(recent_alerts)}")
 
+    # Filter out dismissed alerts (user-specific)
+    filtered_alerts = []
+    for _, alert in recent_alerts.iterrows():
+        alert_id = f"{symbol}_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+        if alert_id not in st.session_state.dismissed_alerts:
+            filtered_alerts.append((alert_id, alert))
+
+    recent_alerts = pd.DataFrame([alert for _, alert in filtered_alerts])
+
     if len(recent_alerts) == 0:
         st.info(f"No {symbol} alerts available")
         return
 
-    # Alert count metrics - more compact for side-by-side
-    if 'priority' in recent_alerts.columns:
-        critical_count = len(recent_alerts[recent_alerts['priority'] == 'critical'])
-        warning_count = len(recent_alerts[recent_alerts['priority'] == 'warning'])
-        info_count = len(recent_alerts[recent_alerts['priority'] == 'info'])
-    else:
-        critical_count = 0
-        warning_count = 0
-        info_count = len(recent_alerts)
+    # Alert count metrics - more compact for side-by-side (count only non-dismissed)
+    critical_count = 0
+    warning_count = 0
+    info_count = 0
 
-    st.caption(f"🔴 {critical_count} | 🟡 {warning_count} | 🔵 {info_count} | Total: {len(recent_alerts)}")
+    for _, alert in filtered_alerts:
+        priority = alert.get('priority', 'info')
+        if priority == 'critical':
+            critical_count += 1
+        elif priority == 'warning':
+            warning_count += 1
+        else:
+            info_count += 1
+
+    st.caption(f"🔴 {critical_count} | 🟡 {warning_count} | 🔵 {info_count} | Total: {len(filtered_alerts)}")
     st.markdown("---")
 
-    # Display alerts - more compact
-    for _, alert in recent_alerts.head(15).iterrows():
+    # Display alerts - more compact with X button
+    for alert_id, alert in filtered_alerts[:15]:
         alert_class = {
             'critical': 'alert-critical',
             'warning': 'alert-warning',
@@ -573,16 +616,26 @@ def render_alert_feed(df, symbol):
 
         price_info = f" @ ${alert['price']:.2f}" if 'price' in alert else ""
 
-        st.markdown(f"""
-        <div class="alert-box {alert_class}">
-            <strong>{alert['timestamp'].strftime('%I:%M:%S')}</strong> - {alert.get('type', 'Alert')}{price_info}<br>
-            <small>{alert.get('message', 'No message')}</small>
-        </div>
-        """, unsafe_allow_html=True)
+        # Use columns for alert content and dismiss button
+        col_alert, col_dismiss = st.columns([10, 1])
+
+        with col_alert:
+            st.markdown(f"""
+            <div class="alert-box {alert_class}">
+                <strong>{alert['timestamp'].strftime('%I:%M:%S')}</strong> - {alert.get('type', 'Alert')}{price_info}<br>
+                <small>{alert.get('message', 'No message')}</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_dismiss:
+            # Small X button to dismiss individual alert
+            if st.button("×", key=f"dismiss_{alert_id}", help="Dismiss this alert"):
+                st.session_state.dismissed_alerts.add(alert_id)
+                st.rerun()
 
     # Show alert count
-    if len(recent_alerts) > 15:
-        st.caption(f"Showing 15 of {len(recent_alerts)} alerts (last 2 hrs)")
+    if len(filtered_alerts) > 15:
+        st.caption(f"Showing 15 of {len(filtered_alerts)} alerts (last 2 hrs)")
 
 # ========================================
 # MAIN APP
