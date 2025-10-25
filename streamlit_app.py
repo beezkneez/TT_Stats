@@ -801,23 +801,24 @@ def main():
                 <style>
                     .sound-btn {
                         border: none;
-                        padding: 8px;
+                        padding: 10px;
                         border-radius: 4px;
                         cursor: pointer;
-                        width: 30%;
-                        font-size: 12px;
+                        width: 32%;
+                        font-size: 11px;
                         color: white;
-                        margin: 2px;
+                        margin: 1px;
+                        font-weight: bold;
                     }
-                    .btn-critical { background: #d32f2f; }
-                    .btn-warning { background: #f57c00; }
-                    .btn-info { background: #2196f3; }
+                    .btn-high { background: #d32f2f; }
+                    .btn-medium { background: #ff9800; }
+                    .btn-low { background: #2196f3; }
                 </style>
 
-                <div style="text-align: center;">
-                    <button class="sound-btn btn-critical" onclick="playSound('critical')">🔴 Critical</button>
-                    <button class="sound-btn btn-warning" onclick="playSound('warning')">🟡 Warning</button>
-                    <button class="sound-btn btn-info" onclick="playSound('info')">🔵 Info</button>
+                <div style="text-align: center; display: flex; gap: 2px; justify-content: space-between;">
+                    <button class="sound-btn btn-high" onclick="playSound('critical')">🔴 High</button>
+                    <button class="sound-btn btn-medium" onclick="playSound('warning')">🟠 Medium</button>
+                    <button class="sound-btn btn-low" onclick="playSound('info')">🔵 Low</button>
                 </div>
 
                 <script>
