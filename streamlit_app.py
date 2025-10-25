@@ -332,27 +332,16 @@ def check_and_play_alert_sounds(df, symbol):
 
     if sound_to_play:
         # Build custom sound data URLs from session state
-        if st.session_state.custom_sounds['high']:
-            high_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}`'
-        else:
-            high_sound_data = 'null'
+        high_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}"' if st.session_state.custom_sounds['high'] else 'null'
+        medium_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}"' if st.session_state.custom_sounds['medium'] else 'null'
+        low_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}"' if st.session_state.custom_sounds['low'] else 'null'
 
-        if st.session_state.custom_sounds['medium']:
-            medium_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}`'
-        else:
-            medium_sound_data = 'null'
-
-        if st.session_state.custom_sounds['low']:
-            low_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}`'
-        else:
-            low_sound_data = 'null'
-
-        custom_sounds_js = f"""
-            const customSounds = {{
-                high: {high_sound_data},
-                medium: {medium_sound_data},
-                low: {low_sound_data}
-            }};
+        custom_sounds_js = """
+            const customSounds = {
+                high: """ + high_js + """,
+                medium: """ + medium_js + """,
+                low: """ + low_js + """
+            };
         """
 
         # Play sound using self-contained component with custom sound support
@@ -1091,28 +1080,17 @@ def main():
             st.caption("Test Sounds:")
 
             # Self-contained HTML component with sounds
-            # Inject custom sounds as base64 data
-            if st.session_state.custom_sounds['high']:
-                high_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}`'
-            else:
-                high_sound_data = 'null'
+            # Inject custom sounds as base64 data - build JavaScript object strings
+            high_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}"' if st.session_state.custom_sounds['high'] else 'null'
+            medium_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}"' if st.session_state.custom_sounds['medium'] else 'null'
+            low_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}"' if st.session_state.custom_sounds['low'] else 'null'
 
-            if st.session_state.custom_sounds['medium']:
-                medium_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}`'
-            else:
-                medium_sound_data = 'null'
-
-            if st.session_state.custom_sounds['low']:
-                low_sound_data = f'`data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}`'
-            else:
-                low_sound_data = 'null'
-
-            custom_sounds_js = f"""
-                const customSounds = {{
-                    high: {high_sound_data},
-                    medium: {medium_sound_data},
-                    low: {low_sound_data}
-                }};
+            custom_sounds_js = """
+                const customSounds = {
+                    high: """ + high_js + """,
+                    medium: """ + medium_js + """,
+                    low: """ + low_js + """
+                };
             """
 
             components.html(f"""
