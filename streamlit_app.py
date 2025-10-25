@@ -45,7 +45,7 @@ supabase = init_supabase()
 
 # Initialize session state for section ordering
 if 'section_order' not in st.session_state:
-    st.session_state.section_order = ["Alerts", "Gap Stats", "Initial Balance", "Single Prints"]
+    st.session_state.section_order = ["Alerts", "Environment", "Risk Assessment", "Gap Stats", "Initial Balance", "Single Prints"]
 
 # Initialize session state for dismissed alerts (user-specific, doesn't affect others)
 if 'dismissed_alerts' not in st.session_state:
@@ -241,6 +241,50 @@ def load_alerts_data(table_name):
         df = pd.DataFrame(data)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
+    except:
+        return None
+
+@st.cache_data(ttl=30)  # Refresh every 30 seconds
+def load_environment_data(file_path):
+    """Load Market Environment data from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table('market_environment').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data:
+                return None
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if data else None
+    except:
+        return None
+
+@st.cache_data(ttl=60)  # Refresh every minute
+def load_risk_assessment_data(file_path):
+    """Load Risk Assessment data from Supabase or JSON file"""
+    try:
+        # Try Supabase first
+        if supabase:
+            response = supabase.table('risk_assessment').select('data').eq('id', 1).single().execute()
+            data = response.data['data']
+            if not data:
+                return None
+            return data
+    except:
+        pass
+
+    # Fallback to JSON file
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data if data else None
     except:
         return None
 
@@ -632,7 +676,203 @@ def render_single_prints_block(df):
             st.dataframe(filled_df.head(10), use_container_width=True, hide_index=True)
 
 # ========================================
-# BLOCK 4: REAL-TIME ALERTS
+# BLOCK 4: MARKET ENVIRONMENT
+# ========================================
+
+def render_environment_block(data):
+    """Render the Market Environment block"""
+    st.markdown('<div class="block-header">🌡️ Market Environment</div>', unsafe_allow_html=True)
+
+    if data is None:
+        st.warning("No environment data available")
+        return
+
+    # Display timestamp
+    est = pytz.timezone('US/Eastern')
+    timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+    if timestamp.tzinfo is None:
+        timestamp = est.localize(timestamp)
+    st.caption(f"Last updated: {timestamp.strftime('%I:%M:%S %p')} EST | Symbol: {data.get('symbol', 'NQ')}")
+
+    # Volatility Metrics
+    st.markdown("### 📊 Volatility Metrics")
+    vol = data.get('volatility', {})
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        rvol = vol.get('rvol', 0)
+        rvol_pct = vol.get('rvol_percentile', 0)
+        delta_color = "normal" if rvol < 1.2 else "inverse"
+        st.metric(
+            "Realized Vol (Rvol)",
+            f"{rvol:.2f}",
+            delta=f"{rvol_pct}th percentile",
+            delta_color=delta_color
+        )
+
+    with col2:
+        atr_daily = vol.get('atr_daily', 0)
+        st.metric("ATR (Daily)", f"{atr_daily:.1f} pts")
+
+    with col3:
+        vix = vol.get('vix', 0)
+        vix_trend = vol.get('vix_trend', 'stable')
+        trend_emoji = "📈" if vix_trend == "rising" else "📉" if vix_trend == "falling" else "➡️"
+        st.metric("VIX", f"{vix:.2f}", delta=f"{trend_emoji} {vix_trend}")
+
+    with col4:
+        atr_weekly = vol.get('atr_weekly', 0)
+        st.metric("ATR (Weekly)", f"{atr_weekly:.1f} pts")
+
+    st.markdown("---")
+
+    # Range Metrics
+    st.markdown("### 📏 Range Metrics")
+    range_data = data.get('range_metrics', {})
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        weekly_range = range_data.get('weekly_range', 0)
+        weekly_pct = range_data.get('weekly_range_pct_atr', 0)
+        st.metric(
+            "Weekly Range",
+            f"{weekly_range:.1f} pts",
+            delta=f"{weekly_pct:.1f}x ATR"
+        )
+
+    with col2:
+        daily_avg = range_data.get('daily_range_avg_5d', 0)
+        st.metric("5-Day Avg Range", f"{daily_avg:.1f} pts")
+
+    with col3:
+        current_range = range_data.get('current_day_range', 0)
+        st.metric("Today's Range", f"{current_range:.1f} pts")
+
+    with col4:
+        expansion = range_data.get('range_expansion', False)
+        status = "✅ Expanding" if expansion else "📊 Normal"
+        st.metric("Range Status", status)
+
+    st.markdown("---")
+
+    # Market Conditions
+    st.markdown("### 🎯 Market Conditions")
+    conditions = data.get('market_conditions', {})
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        regime = conditions.get('regime', 'unknown')
+        regime_emoji = {"normal": "📊", "high_vol": "⚡", "low_vol": "😴"}.get(regime, "❓")
+        st.markdown(f"**Regime:** {regime_emoji} {regime.title()}")
+
+    with col2:
+        trend = conditions.get('trend', 'unknown')
+        trend_emoji = {"trending": "📈", "choppy": "〰️", "ranging": "↔️"}.get(trend, "❓")
+        st.markdown(f"**Trend:** {trend_emoji} {trend.title()}")
+
+    with col3:
+        volume = conditions.get('volume_profile', 'unknown')
+        vol_emoji = {"high": "🔊", "average": "🔉", "low": "🔈"}.get(volume, "❓")
+        st.markdown(f"**Volume:** {vol_emoji} {volume.title()}")
+
+# ========================================
+# BLOCK 5: RISK ASSESSMENT
+# ========================================
+
+def render_risk_assessment_block(data):
+    """Render the Risk Assessment block"""
+    st.markdown('<div class="block-header">⚠️ Risk Assessment</div>', unsafe_allow_html=True)
+
+    if data is None:
+        st.warning("No risk assessment data available")
+        return
+
+    # Display timestamp
+    est = pytz.timezone('US/Eastern')
+    timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+    if timestamp.tzinfo is None:
+        timestamp = est.localize(timestamp)
+    st.caption(f"Last updated: {timestamp.strftime('%I:%M:%S %p')} EST")
+
+    # Overall Risk Level
+    risk_level = data.get('overall_risk_level', 'unknown')
+    risk_score = data.get('risk_score', 0)
+
+    # Color coding
+    risk_colors = {
+        'low': ('#388e3c', '🟢'),
+        'medium': ('#f57c00', '🟡'),
+        'medium-high': ('#ff6f00', '🟠'),
+        'high': ('#d32f2f', '🔴'),
+        'extreme': ('#b71c1c', '🔴🔴')
+    }
+    color, emoji = risk_colors.get(risk_level, ('#757575', '⚪'))
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.markdown(f"""
+            <div style="background: {color}; padding: 20px; border-radius: 10px; text-align: center;">
+                <h2 style="color: white; margin: 0;">{emoji} {risk_level.upper()}</h2>
+                <p style="color: white; margin: 5px 0 0 0; font-size: 24px;">{risk_score}/10</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        recommended_size = data.get('recommended_position_size', 'N/A')
+        st.markdown(f"### Recommended Position Size: **{recommended_size}**")
+        st.caption("Based on current market conditions and volatility")
+
+    st.markdown("---")
+
+    # Risk Factors
+    st.markdown("### 📋 Risk Factors")
+    factors = data.get('factors', {})
+
+    for factor_name, factor_data in factors.items():
+        level = factor_data.get('level', 'unknown')
+        score = factor_data.get('score', 0)
+        reason = factor_data.get('reason', '')
+
+        # Progress bar color based on score
+        progress_color = "#388e3c" if score <= 3 else "#f57c00" if score <= 6 else "#d32f2f"
+
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown(f"**{factor_name.replace('_', ' ').title()}**")
+            st.progress(score / 10)
+        with col2:
+            st.markdown(f"*{level.upper()}* ({score}/10)")
+            st.caption(reason)
+
+    st.markdown("---")
+
+    # Recommendations
+    st.markdown("### 💡 Recommendations")
+    recommendations = data.get('recommendations', [])
+
+    for rec in recommendations:
+        st.markdown(f"• {rec}")
+
+    # Suggested Strategies
+    if 'suggested_strategies' in data:
+        st.markdown("### 🎯 Suggested Strategies")
+        strategies = data.get('suggested_strategies', [])
+        cols = st.columns(len(strategies))
+        for idx, strategy in enumerate(strategies):
+            with cols[idx]:
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                padding: 10px; border-radius: 5px; text-align: center; color: white;">
+                        {strategy}
+                    </div>
+                """, unsafe_allow_html=True)
+
+# ========================================
+# BLOCK 6: REAL-TIME ALERTS
 # ========================================
 
 def render_alerts_block():
@@ -989,6 +1229,8 @@ def main():
         # Visibility toggles
         st.markdown("### 👁️ Show/Hide Sections")
         show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
+        show_environment = st.checkbox("Environment", value=True, key="show_environment")
+        show_risk = st.checkbox("Risk Assessment", value=True, key="show_risk")
         show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
         show_ib = st.checkbox("Initial Balance", value=True, key="show_ib")
         show_sp = st.checkbox("Single Prints", value=True, key="show_sp")
@@ -1028,10 +1270,14 @@ def main():
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
     ib_df = load_ib_data(Path(__file__).parent / ib_file)
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
+    environment_data = load_environment_data(Path(__file__).parent / "data/market_environment.json")
+    risk_data = load_risk_assessment_data(Path(__file__).parent / "data/risk_assessment.json")
 
     # Section mapping with visibility
     section_config = {
         "Alerts": (show_alerts, lambda: render_alerts_block()),
+        "Environment": (show_environment, lambda: render_environment_block(environment_data)),
+        "Risk Assessment": (show_risk, lambda: render_risk_assessment_block(risk_data)),
         "Gap Stats": (show_gap, lambda: render_gap_block(gap_df)),
         "Initial Balance": (show_ib, lambda: render_ib_block(ib_df)),
         "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df))
