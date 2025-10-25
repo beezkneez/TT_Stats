@@ -1045,20 +1045,18 @@ def main():
             st.caption("Test Sounds:")
 
             # Self-contained HTML component with sounds
-            # Inject custom sounds as base64 data - build JavaScript object strings
-            high_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["high"]}"' if st.session_state.custom_sounds['high'] else 'null'
-            medium_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["medium"]}"' if st.session_state.custom_sounds['medium'] else 'null'
-            low_js = f'"data:audio/mp3;base64,{st.session_state.custom_sounds["low"]}"' if st.session_state.custom_sounds['low'] else 'null'
+            # Build custom sound data
+            high_b64 = st.session_state.custom_sounds['high'] or ''
+            medium_b64 = st.session_state.custom_sounds['medium'] or ''
+            low_b64 = st.session_state.custom_sounds['low'] or ''
 
-            custom_sounds_js = """
-                const customSounds = {
-                    high: """ + high_js + """,
-                    medium: """ + medium_js + """,
-                    low: """ + low_js + """
-                };
-            """
+            # Build JavaScript object strings safely
+            high_val = f'"data:audio/mp3;base64,{high_b64}"' if high_b64 else 'null'
+            medium_val = f'"data:audio/mp3;base64,{medium_b64}"' if medium_b64 else 'null'
+            low_val = f'"data:audio/mp3;base64,{low_b64}"' if low_b64 else 'null'
 
-            components.html(f"""
+            # Build HTML with injected values using % formatting
+            html_content = """
                 <style>
                     .sound-btn {
                         border: none;
@@ -1083,21 +1081,25 @@ def main():
                 </div>
 
                 <script>
-                    {custom_sounds_js}
+                    const customSounds = {
+                        high: %s,
+                        medium: %s,
+                        low: %s
+                    };
 
-                    function playSound(priority) {{
+                    function playSound(priority) {
                         // Check if custom sound exists
-                        const priorityMap = {{'critical': 'high', 'warning': 'medium', 'info': 'low'}};
+                        const priorityMap = {'critical': 'high', 'warning': 'medium', 'info': 'low'};
                         const soundKey = priorityMap[priority];
                         const customSound = customSounds[soundKey];
 
-                        if (customSound) {{
+                        if (customSound) {
                             // Play custom sound
                             const audio = new Audio(customSound);
                             audio.volume = 0.7;
                             audio.play().catch(e => console.log('Audio play failed:', e));
                             return;
-                        }}
+                        }
 
                         // Fallback to beeps
                         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1107,7 +1109,7 @@ def main():
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
 
-                        if (priority === 'critical') {{
+                        if (priority === 'critical') {
                             // High priority: High pitch, triple beep
                             oscillator.frequency.value = 1200;
                             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
@@ -1116,7 +1118,7 @@ def main():
                             oscillator.stop(audioContext.currentTime + 0.15);
 
                             // Second beep
-                            setTimeout(() => {{
+                            setTimeout(() => {
                                 const osc2 = audioContext.createOscillator();
                                 const gain2 = audioContext.createGain();
                                 osc2.connect(gain2);
@@ -1126,10 +1128,10 @@ def main():
                                 gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
                                 osc2.start(audioContext.currentTime);
                                 osc2.stop(audioContext.currentTime + 0.15);
-                            }}, 200);
+                            }, 200);
 
                             // Third beep
-                            setTimeout(() => {{
+                            setTimeout(() => {
                                 const osc3 = audioContext.createOscillator();
                                 const gain3 = audioContext.createGain();
                                 osc3.connect(gain3);
@@ -1139,9 +1141,9 @@ def main():
                                 gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
                                 osc3.start(audioContext.currentTime);
                                 osc3.stop(audioContext.currentTime + 0.15);
-                            }}, 400);
+                            }, 400);
 
-                        }} else if (priority === 'warning') {{
+                        } else if (priority === 'warning') {
                             // Medium priority: Medium pitch, double beep
                             oscillator.frequency.value = 800;
                             gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
@@ -1150,7 +1152,7 @@ def main():
                             oscillator.stop(audioContext.currentTime + 0.12);
 
                             // Second beep
-                            setTimeout(() => {{
+                            setTimeout(() => {
                                 const osc2 = audioContext.createOscillator();
                                 const gain2 = audioContext.createGain();
                                 osc2.connect(gain2);
@@ -1160,22 +1162,24 @@ def main():
                                 gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
                                 osc2.start(audioContext.currentTime);
                                 osc2.stop(audioContext.currentTime + 0.12);
-                            }}, 180);
+                            }, 180);
 
-                        }} else {{
+                        } else {
                             // Low priority (info): Lower pitch, single beep
                             oscillator.frequency.value = 500;
                             gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
                             oscillator.start(audioContext.currentTime);
                             oscillator.stop(audioContext.currentTime + 0.1);
-                        }}
+                        }
 
                         // Make function available globally for auto-alerts
                         window.parent.playAlertSound = playSound;
-                    }}
+                    }
                 </script>
-            """, height=50)
+            """ % (high_val, medium_val, low_val)
+
+            components.html(html_content, height=50)
 
             st.markdown("---")
             st.caption("Custom Sounds (MP3/WAV):")
