@@ -231,6 +231,14 @@ def load_alerts_data(table_name):
 # UTILITY FUNCTIONS
 # ========================================
 
+def generate_alert_id(symbol, alert):
+    """Generate a consistent unique ID for an alert"""
+    # Use timestamp as string, type, and first 50 chars of message
+    timestamp_str = str(alert['timestamp'])
+    alert_type = alert.get('type', '')
+    message = alert.get('message', '')[:50]  # First 50 chars to keep ID reasonable
+    return f"{symbol}_{timestamp_str}_{alert_type}_{message}"
+
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
     est = pytz.timezone('US/Eastern')
@@ -529,8 +537,8 @@ def render_alerts_block():
                 # Mark all current NQ alerts as dismissed
                 nq_data = load_alerts_data("alerts_nq")
                 if nq_data is not None:
-                    for _, alert in nq_data.iterrows():
-                        alert_id = f"NQ_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+                    for idx, alert in nq_data.iterrows():
+                        alert_id = generate_alert_id("NQ", alert)
                         st.session_state.dismissed_alerts.add(alert_id)
                 st.rerun()
 
@@ -548,8 +556,8 @@ def render_alerts_block():
                 # Mark all current ES alerts as dismissed
                 es_data = load_alerts_data("alerts_es")
                 if es_data is not None:
-                    for _, alert in es_data.iterrows():
-                        alert_id = f"ES_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+                    for idx, alert in es_data.iterrows():
+                        alert_id = generate_alert_id("ES", alert)
                         st.session_state.dismissed_alerts.add(alert_id)
                 st.rerun()
 
@@ -578,8 +586,8 @@ def render_alert_feed(df, symbol):
 
     # Filter out dismissed alerts (user-specific)
     filtered_alerts = []
-    for _, alert in recent_alerts.iterrows():
-        alert_id = f"{symbol}_{alert['timestamp']}_{alert.get('type', '')}_{alert.get('message', '')}"
+    for idx, alert in recent_alerts.iterrows():
+        alert_id = generate_alert_id(symbol, alert)
         if alert_id not in st.session_state.dismissed_alerts:
             filtered_alerts.append((alert_id, alert))
 
