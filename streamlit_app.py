@@ -562,8 +562,8 @@ def main():
         st.markdown("### 👁️ Show/Hide Sections")
         show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
         show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
-        show_ib = st.checkbox("Initial Balance", value=False, key="show_ib")
-        show_sp = st.checkbox("Single Prints", value=False, key="show_sp")
+        show_ib = st.checkbox("Initial Balance", value=True, key="show_ib")
+        show_sp = st.checkbox("Single Prints", value=True, key="show_sp")
 
         st.markdown("---")
 
