@@ -126,99 +126,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# JavaScript for alert sounds
-st.markdown("""
-<script>
-// Create audio context for generating alert sounds
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-
-function playAlertSound(priority) {
-    if (!AudioContext) {
-        console.log("Web Audio API not supported");
-        return;
-    }
-
-    const audioContext = new AudioContext();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    // Different frequencies and durations for each priority
-    if (priority === 'critical') {
-        // High priority: High pitch, longer beep, triple beep
-        oscillator.frequency.value = 1200;
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.15);
-
-        // Second beep
-        setTimeout(() => {
-            const osc2 = audioContext.createOscillator();
-            const gain2 = audioContext.createGain();
-            osc2.connect(gain2);
-            gain2.connect(audioContext.destination);
-            osc2.frequency.value = 1200;
-            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-            osc2.start(audioContext.currentTime);
-            osc2.stop(audioContext.currentTime + 0.15);
-        }, 200);
-
-        // Third beep
-        setTimeout(() => {
-            const osc3 = audioContext.createOscillator();
-            const gain3 = audioContext.createGain();
-            osc3.connect(gain3);
-            gain3.connect(audioContext.destination);
-            osc3.frequency.value = 1200;
-            gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-            osc3.start(audioContext.currentTime);
-            osc3.stop(audioContext.currentTime + 0.15);
-        }, 400);
-
-    } else if (priority === 'warning') {
-        // Medium priority: Medium pitch, double beep
-        oscillator.frequency.value = 800;
-        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.12);
-
-        // Second beep
-        setTimeout(() => {
-            const osc2 = audioContext.createOscillator();
-            const gain2 = audioContext.createGain();
-            osc2.connect(gain2);
-            gain2.connect(audioContext.destination);
-            osc2.frequency.value = 800;
-            gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
-            osc2.start(audioContext.currentTime);
-            osc2.stop(audioContext.currentTime + 0.12);
-        }, 180);
-
-    } else {
-        // Low priority (info): Lower pitch, single short beep
-        oscillator.frequency.value = 500;
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.1);
-    }
-}
-
-// Expose function to window for Streamlit to call
-window.playAlertSound = playAlertSound;
-</script>
-""", unsafe_allow_html=True)
-
 # ========================================
 # DATA LOADING FUNCTIONS
 # ========================================
@@ -362,36 +269,86 @@ def check_and_play_alert_sounds(df, symbol):
             new_alerts_by_priority[priority] += 1
 
     # Play sounds for new alerts (play highest priority only to avoid noise)
+    sound_to_play = None
     if new_alerts_by_priority['critical'] > 0:
-        st.markdown("""
-            <script>
-                setTimeout(function() {
-                    if (window.playAlertSound) {
-                        window.playAlertSound('critical');
-                    }
-                }, 100);
-            </script>
-        """, unsafe_allow_html=True)
+        sound_to_play = 'critical'
     elif new_alerts_by_priority['warning'] > 0:
-        st.markdown("""
-            <script>
-                setTimeout(function() {
-                    if (window.playAlertSound) {
-                        window.playAlertSound('warning');
-                    }
-                }, 100);
-            </script>
-        """, unsafe_allow_html=True)
+        sound_to_play = 'warning'
     elif new_alerts_by_priority['info'] > 0:
-        st.markdown("""
+        sound_to_play = 'info'
+
+    if sound_to_play:
+        # Play sound using self-contained component
+        components.html(f"""
             <script>
-                setTimeout(function() {
-                    if (window.playAlertSound) {
-                        window.playAlertSound('info');
-                    }
-                }, 100);
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                const priority = '{sound_to_play}';
+
+                if (priority === 'critical') {{
+                    oscillator.frequency.value = 1200;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+
+                    setTimeout(() => {{
+                        const osc2 = audioContext.createOscillator();
+                        const gain2 = audioContext.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioContext.destination);
+                        osc2.frequency.value = 1200;
+                        gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                        osc2.start(audioContext.currentTime);
+                        osc2.stop(audioContext.currentTime + 0.15);
+                    }}, 200);
+
+                    setTimeout(() => {{
+                        const osc3 = audioContext.createOscillator();
+                        const gain3 = audioContext.createGain();
+                        osc3.connect(gain3);
+                        gain3.connect(audioContext.destination);
+                        osc3.frequency.value = 1200;
+                        gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                        osc3.start(audioContext.currentTime);
+                        osc3.stop(audioContext.currentTime + 0.15);
+                    }}, 400);
+
+                }} else if (priority === 'warning') {{
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.12);
+
+                    setTimeout(() => {{
+                        const osc2 = audioContext.createOscillator();
+                        const gain2 = audioContext.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioContext.destination);
+                        osc2.frequency.value = 800;
+                        gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                        osc2.start(audioContext.currentTime);
+                        osc2.stop(audioContext.currentTime + 0.12);
+                    }}, 180);
+
+                }} else {{
+                    oscillator.frequency.value = 500;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                }}
             </script>
-        """, unsafe_allow_html=True)
+        """, height=0)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
@@ -838,31 +795,109 @@ def main():
         # Test sound buttons
         if st.session_state.sound_enabled:
             st.caption("Test Sounds:")
-            col1, col2, col3 = st.columns(3)
 
-            with col1:
-                st.markdown("""
-                    <button onclick="window.playAlertSound('critical')"
-                            style="background: #d32f2f; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
-                        🔴 Critical
-                    </button>
-                """, unsafe_allow_html=True)
+            # Self-contained HTML component with sounds
+            components.html("""
+                <style>
+                    .sound-btn {
+                        border: none;
+                        padding: 8px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        width: 30%;
+                        font-size: 12px;
+                        color: white;
+                        margin: 2px;
+                    }
+                    .btn-critical { background: #d32f2f; }
+                    .btn-warning { background: #f57c00; }
+                    .btn-info { background: #2196f3; }
+                </style>
 
-            with col2:
-                st.markdown("""
-                    <button onclick="window.playAlertSound('warning')"
-                            style="background: #f57c00; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
-                        🟡 Warning
-                    </button>
-                """, unsafe_allow_html=True)
+                <div style="text-align: center;">
+                    <button class="sound-btn btn-critical" onclick="playSound('critical')">🔴 Critical</button>
+                    <button class="sound-btn btn-warning" onclick="playSound('warning')">🟡 Warning</button>
+                    <button class="sound-btn btn-info" onclick="playSound('info')">🔵 Info</button>
+                </div>
 
-            with col3:
-                st.markdown("""
-                    <button onclick="window.playAlertSound('info')"
-                            style="background: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 12px;">
-                        🔵 Info
-                    </button>
-                """, unsafe_allow_html=True)
+                <script>
+                    function playSound(priority) {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        if (priority === 'critical') {
+                            // High priority: High pitch, triple beep
+                            oscillator.frequency.value = 1200;
+                            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.15);
+
+                            // Second beep
+                            setTimeout(() => {
+                                const osc2 = audioContext.createOscillator();
+                                const gain2 = audioContext.createGain();
+                                osc2.connect(gain2);
+                                gain2.connect(audioContext.destination);
+                                osc2.frequency.value = 1200;
+                                gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                                osc2.start(audioContext.currentTime);
+                                osc2.stop(audioContext.currentTime + 0.15);
+                            }, 200);
+
+                            // Third beep
+                            setTimeout(() => {
+                                const osc3 = audioContext.createOscillator();
+                                const gain3 = audioContext.createGain();
+                                osc3.connect(gain3);
+                                gain3.connect(audioContext.destination);
+                                osc3.frequency.value = 1200;
+                                gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
+                                gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                                osc3.start(audioContext.currentTime);
+                                osc3.stop(audioContext.currentTime + 0.15);
+                            }, 400);
+
+                        } else if (priority === 'warning') {
+                            // Medium priority: Medium pitch, double beep
+                            oscillator.frequency.value = 800;
+                            gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.12);
+
+                            // Second beep
+                            setTimeout(() => {
+                                const osc2 = audioContext.createOscillator();
+                                const gain2 = audioContext.createGain();
+                                osc2.connect(gain2);
+                                gain2.connect(audioContext.destination);
+                                osc2.frequency.value = 800;
+                                gain2.gain.setValueAtTime(0.25, audioContext.currentTime);
+                                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                                osc2.start(audioContext.currentTime);
+                                osc2.stop(audioContext.currentTime + 0.12);
+                            }, 180);
+
+                        } else {
+                            // Low priority (info): Lower pitch, single beep
+                            oscillator.frequency.value = 500;
+                            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.1);
+                        }
+
+                        // Make function available globally for auto-alerts
+                        window.parent.playAlertSound = playSound;
+                    }
+                </script>
+            """, height=50)
 
         st.markdown("---")
 
