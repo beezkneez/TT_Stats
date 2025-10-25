@@ -402,10 +402,10 @@ def render_single_prints_block(df):
     if len(active_prints) > 0:
         st.markdown("### 🎯 Active Single Prints")
 
-        # Format for display
+        # Format for display - sort BEFORE renaming columns
         display_df = active_prints[['symbol', 'price_level', 'age_days', 'distance_from_current', 'direction_from_current']].copy()
-        display_df.columns = ['Symbol', 'Price Level', 'Age (days)', 'Distance', 'Direction']
         display_df = display_df.sort_values('distance_from_current').head(10)
+        display_df.columns = ['Symbol', 'Price Level', 'Age (days)', 'Distance', 'Direction']
 
         st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
