@@ -8,8 +8,8 @@ import json
 from datetime import datetime
 
 # Supabase Configuration
-SUPABASE_URL = "https://xxxxx.supabase.co"  # Replace with your URL
-SUPABASE_KEY = "your-anon-key-here"          # Replace with your key
+SUPABASE_URL = "https://tgphfdxcpstfqqxmeagh.supabase.co"
+SUPABASE_KEY = "your-anon-key-here"  # Replace with your actual anon key from Supabase Dashboard → Settings → API
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
