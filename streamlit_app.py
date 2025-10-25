@@ -1086,73 +1086,10 @@ def main():
                 </script>
             """, height=60)
 
-            st.markdown("---")
-            st.caption("Test Alert Triggers (for testing automatic alert sounds):")
-
-            # Test alert triggers
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                if st.button("🔴 Trigger High Alert", key="trigger_high", use_container_width=True):
-                    # Play high priority sound
-                    components.html("""
-                        <script>
-                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            for (let i = 0; i < 3; i++) {
-                                setTimeout(() => {
-                                    const osc = ctx.createOscillator();
-                                    const gain = ctx.createGain();
-                                    osc.connect(gain);
-                                    gain.connect(ctx.destination);
-                                    osc.frequency.value = 1200;
-                                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                                    osc.start(ctx.currentTime);
-                                    osc.stop(ctx.currentTime + 0.15);
-                                }, i * 200);
-                            }
-                        </script>
-                    """, height=0)
-
-            with col2:
-                if st.button("🟠 Trigger Medium Alert", key="trigger_medium", use_container_width=True):
-                    # Play medium priority sound
-                    components.html("""
-                        <script>
-                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            for (let i = 0; i < 2; i++) {
-                                setTimeout(() => {
-                                    const osc = ctx.createOscillator();
-                                    const gain = ctx.createGain();
-                                    osc.connect(gain);
-                                    gain.connect(ctx.destination);
-                                    osc.frequency.value = 800;
-                                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-                                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
-                                    osc.start(ctx.currentTime);
-                                    osc.stop(ctx.currentTime + 0.12);
-                                }, i * 180);
-                            }
-                        </script>
-                    """, height=0)
-
-            with col3:
-                if st.button("🔵 Trigger Low Alert", key="trigger_low", use_container_width=True):
-                    # Play low priority sound
-                    components.html("""
-                        <script>
-                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            const osc = ctx.createOscillator();
-                            const gain = ctx.createGain();
-                            osc.connect(gain);
-                            gain.connect(ctx.destination);
-                            osc.frequency.value = 500;
-                            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                            osc.start(ctx.currentTime);
-                            osc.stop(ctx.currentTime + 0.1);
-                        </script>
-                    """, height=0)
+            st.caption("To test full alert flow (alert appears + sound plays):")
+            st.code("python scripts/test_high_alert.py", language="bash")
+            st.code("python scripts/test_medium_alert.py", language="bash")
+            st.code("python scripts/test_low_alert.py", language="bash")
 
         st.markdown("---")
 
