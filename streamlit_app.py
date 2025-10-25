@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 import json
 from pathlib import Path
 import pytz
+import base64
 
 # Page config
 st.set_page_config(
@@ -56,6 +57,14 @@ if 'sound_enabled' not in st.session_state:
 
 if 'seen_alerts' not in st.session_state:
     st.session_state.seen_alerts = set()
+
+# Initialize session state for custom sound uploads
+if 'custom_sounds' not in st.session_state:
+    st.session_state.custom_sounds = {
+        'high': None,
+        'medium': None,
+        'low': None
+    }
 
 # Custom CSS
 st.markdown("""
@@ -797,7 +806,16 @@ def main():
             st.caption("Test Sounds:")
 
             # Self-contained HTML component with sounds
-            components.html("""
+            # Inject custom sounds as base64 data
+            custom_sounds_js = f"""
+                const customSounds = {{
+                    high: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['high'] + '`' if st.session_state.custom_sounds['high'] else 'null'},
+                    medium: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['medium'] + '`' if st.session_state.custom_sounds['medium'] else 'null'},
+                    low: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['low'] + '`' if st.session_state.custom_sounds['low'] else 'null'}
+                }};
+            """
+
+            components.html(f"""
                 <style>
                     .sound-btn {
                         border: none;
@@ -822,7 +840,23 @@ def main():
                 </div>
 
                 <script>
-                    function playSound(priority) {
+                    {custom_sounds_js}
+
+                    function playSound(priority) {{
+                        // Check if custom sound exists
+                        const priorityMap = {{'critical': 'high', 'warning': 'medium', 'info': 'low'}};
+                        const soundKey = priorityMap[priority];
+                        const customSound = customSounds[soundKey];
+
+                        if (customSound) {{
+                            // Play custom sound
+                            const audio = new Audio(customSound);
+                            audio.volume = 0.7;
+                            audio.play().catch(e => console.log('Audio play failed:', e));
+                            return;
+                        }}
+
+                        // Fallback to beeps
                         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         const oscillator = audioContext.createOscillator();
                         const gainNode = audioContext.createGain();
@@ -830,7 +864,7 @@ def main():
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
 
-                        if (priority === 'critical') {
+                        if (priority === 'critical') {{
                             // High priority: High pitch, triple beep
                             oscillator.frequency.value = 1200;
                             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
@@ -839,7 +873,7 @@ def main():
                             oscillator.stop(audioContext.currentTime + 0.15);
 
                             // Second beep
-                            setTimeout(() => {
+                            setTimeout(() => {{
                                 const osc2 = audioContext.createOscillator();
                                 const gain2 = audioContext.createGain();
                                 osc2.connect(gain2);
@@ -849,10 +883,10 @@ def main():
                                 gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
                                 osc2.start(audioContext.currentTime);
                                 osc2.stop(audioContext.currentTime + 0.15);
-                            }, 200);
+                            }}, 200);
 
                             // Third beep
-                            setTimeout(() => {
+                            setTimeout(() => {{
                                 const osc3 = audioContext.createOscillator();
                                 const gain3 = audioContext.createGain();
                                 osc3.connect(gain3);
@@ -862,9 +896,9 @@ def main():
                                 gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
                                 osc3.start(audioContext.currentTime);
                                 osc3.stop(audioContext.currentTime + 0.15);
-                            }, 400);
+                            }}, 400);
 
-                        } else if (priority === 'warning') {
+                        }} else if (priority === 'warning') {{
                             // Medium priority: Medium pitch, double beep
                             oscillator.frequency.value = 800;
                             gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
@@ -873,7 +907,7 @@ def main():
                             oscillator.stop(audioContext.currentTime + 0.12);
 
                             // Second beep
-                            setTimeout(() => {
+                            setTimeout(() => {{
                                 const osc2 = audioContext.createOscillator();
                                 const gain2 = audioContext.createGain();
                                 osc2.connect(gain2);
@@ -883,22 +917,44 @@ def main():
                                 gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
                                 osc2.start(audioContext.currentTime);
                                 osc2.stop(audioContext.currentTime + 0.12);
-                            }, 180);
+                            }}, 180);
 
-                        } else {
+                        }} else {{
                             // Low priority (info): Lower pitch, single beep
                             oscillator.frequency.value = 500;
                             gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
                             oscillator.start(audioContext.currentTime);
                             oscillator.stop(audioContext.currentTime + 0.1);
-                        }
+                        }}
 
                         // Make function available globally for auto-alerts
                         window.parent.playAlertSound = playSound;
-                    }
+                    }}
                 </script>
             """, height=50)
+
+            st.markdown("---")
+            st.caption("Custom Sounds (MP3/WAV):")
+
+            # File uploaders for custom sounds
+            high_sound = st.file_uploader("🔴 High Priority", type=["mp3", "wav"], key="upload_high")
+            medium_sound = st.file_uploader("🟠 Medium Priority", type=["mp3", "wav"], key="upload_medium")
+            low_sound = st.file_uploader("🔵 Low Priority", type=["mp3", "wav"], key="upload_low")
+
+            # Store uploaded sounds in session state
+            if high_sound:
+                st.session_state.custom_sounds['high'] = base64.b64encode(high_sound.read()).decode()
+            if medium_sound:
+                st.session_state.custom_sounds['medium'] = base64.b64encode(medium_sound.read()).decode()
+            if low_sound:
+                st.session_state.custom_sounds['low'] = base64.b64encode(low_sound.read()).decode()
+
+            # Reset button
+            if any(st.session_state.custom_sounds.values()):
+                if st.button("🔄 Reset to Default Beeps", use_container_width=True):
+                    st.session_state.custom_sounds = {'high': None, 'medium': None, 'low': None}
+                    st.rerun()
 
         st.markdown("---")
 
