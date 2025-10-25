@@ -461,40 +461,38 @@ def main():
 
         st.markdown("---")
 
-        # Visibility and ordering
-        st.markdown("### 📐 Section Order & Visibility")
-        st.caption("Use ⬆️⬇️ to reorder sections")
+        # Visibility toggles
+        st.markdown("### 👁️ Show/Hide Sections")
+        show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
+        show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
+        show_ib = st.checkbox("Initial Balance", value=False, key="show_ib")
+        show_sp = st.checkbox("Single Prints", value=False, key="show_sp")
 
-        # Section controls
+        st.markdown("---")
+
+        # Section ordering
+        st.markdown("### 📐 Reorder Sections")
+        st.caption("Click arrows to move sections")
+
         for idx, section_name in enumerate(st.session_state.section_order):
-            col1, col2, col3, col4 = st.columns([1, 1, 3, 1])
+            col1, col2, col3 = st.columns([1, 1, 4])
 
             with col1:
                 if idx > 0:
-                    if st.button("⬆️", key=f"up_{section_name}"):
-                        # Swap with previous
+                    if st.button("⬆️", key=f"up_{section_name}", use_container_width=True):
                         st.session_state.section_order[idx], st.session_state.section_order[idx-1] = \
                             st.session_state.section_order[idx-1], st.session_state.section_order[idx]
                         st.rerun()
 
             with col2:
                 if idx < len(st.session_state.section_order) - 1:
-                    if st.button("⬇️", key=f"down_{section_name}"):
-                        # Swap with next
+                    if st.button("⬇️", key=f"down_{section_name}", use_container_width=True):
                         st.session_state.section_order[idx], st.session_state.section_order[idx+1] = \
                             st.session_state.section_order[idx+1], st.session_state.section_order[idx]
                         st.rerun()
 
             with col3:
                 st.markdown(f"**{section_name}**")
-
-            with col4:
-                # Visibility checkbox
-                default_visible = section_name in ["Alerts", "Gap Stats"]
-                visible_key = f"show_{section_name.lower().replace(' ', '_')}"
-                if visible_key not in st.session_state:
-                    st.session_state[visible_key] = default_visible
-                st.checkbox("👁️", value=st.session_state[visible_key], key=visible_key, label_visibility="collapsed")
 
         st.markdown("---")
         st.markdown("### ℹ️ About")
@@ -506,20 +504,21 @@ def main():
     ib_df = load_ib_data(Path(__file__).parent / ib_file)
     sp_df = load_single_prints_data(Path(__file__).parent / sp_file)
 
-    # Section mapping
-    section_renderers = {
-        "Alerts": lambda: render_alerts_block(),
-        "Gap Stats": lambda: render_gap_block(gap_df),
-        "Initial Balance": lambda: render_ib_block(ib_df),
-        "Single Prints": lambda: render_single_prints_block(sp_df)
+    # Section mapping with visibility
+    section_config = {
+        "Alerts": (show_alerts, lambda: render_alerts_block()),
+        "Gap Stats": (show_gap, lambda: render_gap_block(gap_df)),
+        "Initial Balance": (show_ib, lambda: render_ib_block(ib_df)),
+        "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df))
     }
 
     # Render sections in order
     for section_name in st.session_state.section_order:
-        visible_key = f"show_{section_name.lower().replace(' ', '_')}"
-        if st.session_state.get(visible_key, False):
-            section_renderers[section_name]()
-            st.markdown("<br>", unsafe_allow_html=True)
+        if section_name in section_config:
+            is_visible, render_func = section_config[section_name]
+            if is_visible:
+                render_func()
+                st.markdown("<br>", unsafe_allow_html=True)
 
     # Auto-refresh ONLY if enabled
     if enable_auto_refresh:
