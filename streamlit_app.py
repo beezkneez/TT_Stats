@@ -364,12 +364,22 @@ def render_alert_feed(df, symbol):
         st.info(f"⏳ Waiting for {symbol} alerts")
         return
 
-    # Filter to recent alerts (last 2 hours)
-    two_hours_ago = datetime.now(pytz.timezone('US/Eastern')) - timedelta(hours=2)
+    # Make timestamp timezone-aware if it isn't already
+    est = pytz.timezone('US/Eastern')
+    if df['timestamp'].dt.tz is None:
+        df['timestamp'] = df['timestamp'].dt.tz_localize(est)
+
+    # Filter to recent alerts (last 2 hours), or show all if none recent
+    two_hours_ago = datetime.now(est) - timedelta(hours=2)
     recent_alerts = df[df['timestamp'] > two_hours_ago].sort_values('timestamp', ascending=False)
 
+    # If no recent alerts, show last 15 alerts anyway (for demo/testing)
     if len(recent_alerts) == 0:
-        st.info(f"No recent {symbol} alerts")
+        recent_alerts = df.sort_values('timestamp', ascending=False).head(15)
+        st.caption(f"ℹ️ No alerts in last 2 hours - showing most recent {len(recent_alerts)}")
+
+    if len(recent_alerts) == 0:
+        st.info(f"No {symbol} alerts available")
         return
 
     # Alert count metrics - more compact for side-by-side
