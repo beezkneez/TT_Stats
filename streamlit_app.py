@@ -1047,11 +1047,15 @@ def main():
 
             # Self-contained HTML component with sounds
             # Inject custom sounds as base64 data
+            high_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['high']}`" if st.session_state.custom_sounds['high'] else 'null'
+            medium_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['medium']}`" if st.session_state.custom_sounds['medium'] else 'null'
+            low_sound_data = f"`data:audio/mp3;base64,{st.session_state.custom_sounds['low']}`" if st.session_state.custom_sounds['low'] else 'null'
+
             custom_sounds_js = f"""
                 const customSounds = {{
-                    high: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['high'] + '`' if st.session_state.custom_sounds['high'] else 'null'},
-                    medium: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['medium'] + '`' if st.session_state.custom_sounds['medium'] else 'null'},
-                    low: {'`data:audio/mp3;base64,' + st.session_state.custom_sounds['low'] + '`' if st.session_state.custom_sounds['low'] else 'null'}
+                    high: {high_sound_data},
+                    medium: {medium_sound_data},
+                    low: {low_sound_data}
                 }};
             """
 
