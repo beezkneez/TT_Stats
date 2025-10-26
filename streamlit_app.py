@@ -69,6 +69,10 @@ if 'sound_enabled' not in st.session_state:
 if 'seen_alerts' not in st.session_state:
     st.session_state.seen_alerts = set()
 
+# Initialize session state for toast notifications
+if 'toast_alerts' not in st.session_state:
+    st.session_state.toast_alerts = set()
+
 # Initialize session state for custom sound uploads
 if 'custom_sounds' not in st.session_state:
     st.session_state.custom_sounds = {
@@ -142,6 +146,74 @@ st.markdown("""
         text-align: center;
         color: white;
         font-size: 1.2rem;
+    }
+    /* Toast notifications */
+    .toast-container {
+        position: fixed;
+        top: 4rem;
+        right: 1rem;
+        z-index: 999999;
+        max-width: 400px;
+    }
+    .toast {
+        background-color: rgba(14, 17, 23, 0.95);
+        border-left: 4px solid;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s;
+        backdrop-filter: blur(10px);
+    }
+    .toast-critical {
+        border-color: #d32f2f;
+        background-color: rgba(211, 47, 47, 0.15);
+    }
+    .toast-warning {
+        border-color: #f57c00;
+        background-color: rgba(245, 124, 0, 0.15);
+    }
+    .toast-info {
+        border-color: #2196f3;
+        background-color: rgba(33, 150, 243, 0.15);
+    }
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+    .toast-icon {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+    }
+    .toast-content {
+        display: flex;
+        align-items: center;
+        color: white;
+    }
+    .toast-text {
+        flex: 1;
+    }
+    .toast-time {
+        font-size: 0.75rem;
+        color: #999;
+    }
+    .toast-message {
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -455,6 +527,103 @@ def check_and_play_alert_sounds(df, symbol):
                 }}
             </script>
         """, height=0)
+
+def show_toast_notifications():
+    """Show toast notifications for new alerts"""
+    # Load recent alerts from both symbols
+    nq_alerts = load_alerts_data("alerts_nq")
+    es_alerts = load_alerts_data("alerts_es")
+
+    toasts_html = []
+    max_toasts = 3  # Only show up to 3 toasts at once
+    toast_count = 0
+
+    # Check NQ alerts
+    if nq_alerts is not None and len(nq_alerts) > 0:
+        for idx, alert in nq_alerts.head(5).iterrows():  # Check most recent 5
+            if toast_count >= max_toasts:
+                break
+
+            alert_id = generate_alert_id("NQ", alert)
+
+            # Skip dismissed or already toasted alerts
+            if alert_id in st.session_state.dismissed_alerts or alert_id in st.session_state.toast_alerts:
+                continue
+
+            # Mark as toasted
+            st.session_state.toast_alerts.add(alert_id)
+
+            # Create toast HTML
+            priority = alert.get('priority', 'info')
+            toast_class = f'toast-{priority}'
+            icon = '🔴' if priority == 'critical' else '🟡' if priority == 'warning' else '🔵'
+
+            price_info = f" @ ${alert['price']:.2f}" if 'price' in alert else ""
+            timestamp_str = alert['timestamp'].strftime('%I:%M:%S %p') if hasattr(alert['timestamp'], 'strftime') else str(alert['timestamp'])
+            alert_type = alert.get('type', 'Alert')
+            message = alert.get('message', 'No message')
+
+            toasts_html.append(f'''
+            <div class="toast {toast_class}">
+                <div class="toast-content">
+                    <span class="toast-icon">{icon}</span>
+                    <div class="toast-text">
+                        <div><strong>NQ - {alert_type}</strong>{price_info}</div>
+                        <div class="toast-time">{timestamp_str}</div>
+                        <div class="toast-message">{message}</div>
+                    </div>
+                </div>
+            </div>
+            ''')
+            toast_count += 1
+
+    # Check ES alerts
+    if es_alerts is not None and len(es_alerts) > 0:
+        for idx, alert in es_alerts.head(5).iterrows():  # Check most recent 5
+            if toast_count >= max_toasts:
+                break
+
+            alert_id = generate_alert_id("ES", alert)
+
+            # Skip dismissed or already toasted alerts
+            if alert_id in st.session_state.dismissed_alerts or alert_id in st.session_state.toast_alerts:
+                continue
+
+            # Mark as toasted
+            st.session_state.toast_alerts.add(alert_id)
+
+            # Create toast HTML
+            priority = alert.get('priority', 'info')
+            toast_class = f'toast-{priority}'
+            icon = '🔴' if priority == 'critical' else '🟡' if priority == 'warning' else '🔵'
+
+            price_info = f" @ ${alert['price']:.2f}" if 'price' in alert else ""
+            timestamp_str = alert['timestamp'].strftime('%I:%M:%S %p') if hasattr(alert['timestamp'], 'strftime') else str(alert['timestamp'])
+            alert_type = alert.get('type', 'Alert')
+            message = alert.get('message', 'No message')
+
+            toasts_html.append(f'''
+            <div class="toast {toast_class}">
+                <div class="toast-content">
+                    <span class="toast-icon">{icon}</span>
+                    <div class="toast-text">
+                        <div><strong>ES - {alert_type}</strong>{price_info}</div>
+                        <div class="toast-time">{timestamp_str}</div>
+                        <div class="toast-message">{message}</div>
+                    </div>
+                </div>
+            </div>
+            ''')
+            toast_count += 1
+
+    # Display toasts if any
+    if toasts_html:
+        toast_container = f'''
+        <div class="toast-container">
+            {''.join(toasts_html)}
+        </div>
+        '''
+        st.markdown(toast_container, unsafe_allow_html=True)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
@@ -1333,6 +1502,9 @@ def render_alert_feed(df, symbol):
 
 def main():
     st.markdown('<h1 class="main-header">NQ/ES Trading Stats Dashboard</h1>', unsafe_allow_html=True)
+
+    # Show toast notifications for new alerts
+    show_toast_notifications()
 
     # Top status bar
     col1, col2, col3 = st.columns([2, 1, 1])
