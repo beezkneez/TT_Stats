@@ -46,6 +46,7 @@ supabase = init_supabase()
 # Initialize session state for section ordering
 if 'section_order' not in st.session_state:
     st.session_state.section_order = [
+        "Alerts",
         "Daily Context",
         "Environment",
         "Risk Assessment",
@@ -54,8 +55,7 @@ if 'section_order' not in st.session_state:
         "3-Stage Progression",
         "TPO Profile",
         "Single Prints",
-        "Gap Stats",
-        "Alerts"
+        "Gap Stats"
     ]
 
 # Initialize session state for dismissed alerts (user-specific, doesn't affect others)
@@ -146,74 +146,6 @@ st.markdown("""
         text-align: center;
         color: white;
         font-size: 1.2rem;
-    }
-    /* Toast notifications */
-    .toast-container {
-        position: fixed;
-        top: 4rem;
-        right: 1rem;
-        z-index: 999999;
-        max-width: 400px;
-    }
-    .toast {
-        background-color: rgba(14, 17, 23, 0.95);
-        border-left: 4px solid;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s;
-        backdrop-filter: blur(10px);
-    }
-    .toast-critical {
-        border-color: #d32f2f;
-        background-color: rgba(211, 47, 47, 0.15);
-    }
-    .toast-warning {
-        border-color: #f57c00;
-        background-color: rgba(245, 124, 0, 0.15);
-    }
-    .toast-info {
-        border-color: #2196f3;
-        background-color: rgba(33, 150, 243, 0.15);
-    }
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-        }
-        to {
-            opacity: 0;
-        }
-    }
-    .toast-icon {
-        font-size: 1.5rem;
-        margin-right: 0.5rem;
-    }
-    .toast-content {
-        display: flex;
-        align-items: center;
-        color: white;
-    }
-    .toast-text {
-        flex: 1;
-    }
-    .toast-time {
-        font-size: 0.75rem;
-        color: #999;
-    }
-    .toast-message {
-        font-size: 0.9rem;
-        margin-top: 0.25rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -618,12 +550,92 @@ def show_toast_notifications():
 
     # Display toasts if any
     if toasts_html:
-        toast_container = f'''
-        <div class="toast-container">
-            {''.join(toasts_html)}
-        </div>
+        toast_html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    margin: 0;
+                    padding: 0;
+                }}
+                .toast-container {{
+                    position: fixed;
+                    top: 4rem;
+                    right: 1rem;
+                    z-index: 999999;
+                    max-width: 400px;
+                }}
+                .toast {{
+                    border-radius: 0.5rem;
+                    padding: 1rem;
+                    margin-bottom: 0.5rem;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s;
+                    backdrop-filter: blur(10px);
+                    border-left: 4px solid;
+                }}
+                .toast-critical {{
+                    border-color: #d32f2f;
+                    background: linear-gradient(135deg, rgba(211, 47, 47, 0.95), rgba(183, 28, 28, 0.95));
+                }}
+                .toast-warning {{
+                    border-color: #f57c00;
+                    background: linear-gradient(135deg, rgba(245, 124, 0, 0.95), rgba(230, 81, 0, 0.95));
+                }}
+                .toast-info {{
+                    border-color: #2196f3;
+                    background: linear-gradient(135deg, rgba(33, 150, 243, 0.95), rgba(25, 118, 210, 0.95));
+                }}
+                @keyframes slideIn {{
+                    from {{
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }}
+                    to {{
+                        transform: translateX(0);
+                        opacity: 1;
+                    }}
+                }}
+                @keyframes fadeOut {{
+                    from {{
+                        opacity: 1;
+                    }}
+                    to {{
+                        opacity: 0;
+                    }}
+                }}
+                .toast-icon {{
+                    font-size: 1.5rem;
+                    margin-right: 0.5rem;
+                }}
+                .toast-content {{
+                    display: flex;
+                    align-items: center;
+                    color: white;
+                }}
+                .toast-text {{
+                    flex: 1;
+                }}
+                .toast-time {{
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.8);
+                }}
+                .toast-message {{
+                    font-size: 0.9rem;
+                    margin-top: 0.25rem;
+                    color: rgba(255, 255, 255, 0.95);
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="toast-container">
+                {''.join(toasts_html)}
+            </div>
+        </body>
+        </html>
         '''
-        st.markdown(toast_container, unsafe_allow_html=True)
+        components.html(toast_html, height=0)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
