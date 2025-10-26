@@ -44,9 +44,9 @@ def init_supabase():
 supabase = init_supabase()
 
 # Initialize session state for section ordering
-if 'section_order' not in st.session_state:
+# Force reset section order to remove "Alerts" if it exists from old sessions
+if 'section_order' not in st.session_state or 'Alerts' in st.session_state.section_order:
     st.session_state.section_order = [
-        "Alerts",
         "Daily Context",
         "Environment",
         "Risk Assessment",
@@ -1438,6 +1438,56 @@ def render_alerts_block():
         check_and_play_alert_sounds(es_alerts, "ES")
         render_alert_feed(es_alerts, "ES")
 
+def render_alert_feed_compact(df, symbol):
+    """Render compact alert feed for sidebar"""
+    if df is None:
+        st.caption(f"⏳ No alerts")
+        return
+
+    # Make timestamp timezone-aware if it isn't already
+    est = pytz.timezone('US/Eastern')
+    if df['timestamp'].dt.tz is None:
+        df['timestamp'] = df['timestamp'].dt.tz_localize(est)
+
+    # Sort all alerts by timestamp (most recent first)
+    all_alerts = df.sort_values('timestamp', ascending=False)
+
+    # Filter out dismissed alerts (user-specific)
+    filtered_alerts = []
+    for idx, alert in all_alerts.iterrows():
+        alert_id = generate_alert_id(symbol, alert)
+        if alert_id not in st.session_state.dismissed_alerts:
+            filtered_alerts.append((alert_id, alert))
+
+    if len(filtered_alerts) == 0:
+        st.caption(f"No {symbol} alerts")
+        return
+
+    # Show count by priority - compact
+    critical_count = sum(1 for _, a in filtered_alerts if a.get('priority') == 'critical')
+    warning_count = sum(1 for _, a in filtered_alerts if a.get('priority') == 'warning')
+    info_count = sum(1 for _, a in filtered_alerts if a.get('priority') == 'info')
+
+    st.caption(f"🔴 {critical_count} 🟡 {warning_count} 🔵 {info_count}")
+
+    # Display top 5 alerts - very compact
+    for alert_id, alert in filtered_alerts[:5]:
+        priority = alert.get('priority', 'info')
+        icon = {'critical': '🔴', 'warning': '🟡', 'info': '🔵'}.get(priority, '🔵')
+
+        price_info = f" ${alert['price']:.2f}" if 'price' in alert else ""
+
+        # Very compact alert display
+        alert_text = f"{icon} {alert['timestamp'].strftime('%H:%M')} {alert.get('type', 'Alert')}{price_info}"
+
+        # Checkbox for dismissal
+        if st.checkbox(alert_text, key=f"dismiss_compact_{alert_id}", value=False, label_visibility="visible"):
+            st.session_state.dismissed_alerts.add(alert_id)
+            st.rerun()
+
+    if len(filtered_alerts) > 5:
+        st.caption(f"+ {len(filtered_alerts) - 5} more")
+
 def render_alert_feed(df, symbol):
     """Render alert feed for a specific symbol"""
     if df is None:
@@ -1483,7 +1533,7 @@ def render_alert_feed(df, symbol):
     st.caption(f"🔴 {critical_count} | 🟡 {warning_count} | 🔵 {info_count} | Total: {len(filtered_alerts)}")
     st.markdown("---")
 
-    # Display alerts - more compact with X button
+    # Display alerts - compact with dismiss button
     for alert_id, alert in filtered_alerts[:15]:
         alert_class = {
             'critical': 'alert-critical',
@@ -1494,7 +1544,7 @@ def render_alert_feed(df, symbol):
         price_info = f" @ ${alert['price']:.2f}" if 'price' in alert else ""
 
         # Use columns for alert content and dismiss button
-        col_alert, col_dismiss = st.columns([10, 1])
+        col_alert, col_dismiss = st.columns([9, 1])
 
         with col_alert:
             st.markdown(f"""
@@ -1512,7 +1562,7 @@ def render_alert_feed(df, symbol):
 
     # Show alert count
     if len(filtered_alerts) > 15:
-        st.caption(f"Showing 15 of {len(filtered_alerts)} alerts (last 2 hrs)")
+        st.caption(f"Showing 15 of {len(filtered_alerts)} alerts")
 
 # ========================================
 # MAIN APP
@@ -1599,14 +1649,10 @@ def main():
 
         st.markdown("---")
 
-        # Data file paths
-        st.markdown("### 📁 Data Sources")
-        gap_file = st.text_input("Gap Data", value="data/gap_details.json")
-        ib_file = st.text_input("IB Data", value="data/ib_details.json")
-        sp_file = st.text_input("Single Prints", value="data/single_prints.json")
-        st.caption("Alerts: data/alerts_nq.json & data/alerts_es.json")
-
-        st.markdown("---")
+        # Data file paths (hidden in session state, using defaults)
+        gap_file = "data/gap_details.json"
+        ib_file = "data/ib_details.json"
+        sp_file = "data/single_prints.json"
 
         # Refresh settings
         st.markdown("### 🔄 Refresh")
@@ -1638,7 +1684,6 @@ def main():
         show_tpo_profile = st.checkbox("TPO Profile", value=True, key="show_tpo_profile")
         show_sp = st.checkbox("Single Prints", value=True, key="show_sp")
         show_gap = st.checkbox("Gap Stats", value=True, key="show_gap")
-        show_alerts = st.checkbox("Alerts", value=True, key="show_alerts")
 
         st.markdown("---")
 
@@ -1667,9 +1712,48 @@ def main():
                 st.markdown(f"**{section_name}**")
 
         st.markdown("---")
+
+        # ALERTS SECTION IN SIDEBAR
+        st.markdown("### 🚨 Alerts")
+
+        # Current time display
+        is_live_alerts, current_time_alerts = get_current_market_status()
+        st.caption(f"Updated: {current_time_alerts.strftime('%I:%M:%S %p')}")
+
+        # NQ Alerts (Top)
+        st.markdown("**📊 NQ Alerts**")
+        if st.button("🗑️ Clear NQ", key="clear_nq_sidebar", use_container_width=True):
+            nq_data = load_alerts_data("alerts_nq")
+            if nq_data is not None:
+                for idx, alert in nq_data.iterrows():
+                    alert_id = generate_alert_id("NQ", alert)
+                    st.session_state.dismissed_alerts.add(alert_id)
+            st.rerun()
+
+        nq_alerts = load_alerts_data("alerts_nq")
+        check_and_play_alert_sounds(nq_alerts, "NQ")
+        render_alert_feed_compact(nq_alerts, "NQ")
+
+        # ES Alerts (Bottom) - no separator, just below NQ
+        st.markdown("")  # Small space
+        st.markdown("**📊 ES Alerts**")
+        if st.button("🗑️ Clear ES", key="clear_es_sidebar", use_container_width=True):
+            es_data = load_alerts_data("alerts_es")
+            if es_data is not None:
+                for idx, alert in es_data.iterrows():
+                    alert_id = generate_alert_id("ES", alert)
+                    st.session_state.dismissed_alerts.add(alert_id)
+            st.rerun()
+
+        es_alerts = load_alerts_data("alerts_es")
+        check_and_play_alert_sounds(es_alerts, "ES")
+        render_alert_feed_compact(es_alerts, "ES")
+
+        st.markdown("---")
         st.markdown("### ℹ️ About")
         st.caption("Live NQ/ES trading statistics dashboard")
         st.caption("Built with Streamlit")
+        st.caption("🔧 Version: 2.0 - Alerts in Sidebar")
 
     # Load data files
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
@@ -1692,8 +1776,7 @@ def main():
         "3-Stage Progression": (show_stage_progression, lambda: render_stage_progression_block(stage_progression_data)),
         "TPO Profile": (show_tpo_profile, lambda: render_tpo_profile_block(tpo_profile_data)),
         "Single Prints": (show_sp, lambda: render_single_prints_block(sp_df)),
-        "Gap Stats": (show_gap, lambda: render_gap_block(gap_df)),
-        "Alerts": (show_alerts, lambda: render_alerts_block())
+        "Gap Stats": (show_gap, lambda: render_gap_block(gap_df))
     }
 
     # Render sections in order - only render visible sections once
