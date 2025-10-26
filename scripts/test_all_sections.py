@@ -4,7 +4,7 @@ Run this to see the entire dashboard populated at once
 """
 
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Supabase Configuration
 SUPABASE_URL = "https://tgphfdxcpstfqqxmeagh.supabase.co"
@@ -261,7 +261,187 @@ try:
 except Exception as e:
     print(f"❌ TPO Profile: {e}")
 
+# 7. Gap Details
+gap_details_data = [
+    {
+        "date": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "prior_day_high": 21050.00,
+        "prior_day_low": 20875.25,
+        "current_open": 20912.50,
+        "gap_size": 37.25,
+        "gap_fill_target": 21050.00,
+        "atr": 285.5,
+        "gap_pct_atr": 13.04,
+        "category": "Small",
+        "direction": "Down",
+        "filled": False,
+        "fill_time": None,
+        "minutes_to_fill": None
+    },
+    {
+        "date": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "prior_day_high": 20985.50,
+        "prior_day_low": 20750.25,
+        "current_open": 21025.75,
+        "gap_size": 40.25,
+        "gap_fill_target": 20985.50,
+        "atr": 280.3,
+        "gap_pct_atr": 14.36,
+        "category": "Small",
+        "direction": "Up",
+        "filled": True,
+        "fill_time": "09:45:00",
+        "minutes_to_fill": 15
+    },
+    {
+        "date": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "ES",
+        "prior_day_high": 5950.50,
+        "prior_day_low": 5910.25,
+        "current_open": 5925.75,
+        "gap_size": 15.25,
+        "gap_fill_target": 5950.50,
+        "atr": 45.35,
+        "gap_pct_atr": 33.63,
+        "category": "Medium",
+        "direction": "Down",
+        "filled": False,
+        "fill_time": None,
+        "minutes_to_fill": None
+    }
+]
+
+try:
+    supabase.table('gap_details').upsert({'id': 1, 'data': gap_details_data}).execute()
+    print("✅ Gap Details")
+except Exception as e:
+    print(f"❌ Gap Details: {e}")
+
+# 8. IB Details
+ib_details_data = [
+    {
+        "date": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "ib_high": 20975.50,
+        "ib_low": 20912.25,
+        "ib_range": 63.25,
+        "atr": 285.5,
+        "ib_pct_atr": 22.15,
+        "current_price": 20995.75,
+        "extension_30_level": 20994.48,
+        "extension_50_level": 21007.13,
+        "extension_100_level": 21038.75,
+        "current_extension_pct": 32.0,
+        "reached_30": True,
+        "reached_50": False,
+        "reached_100": False,
+        "time_to_30": 25,
+        "time_to_50": None,
+        "direction": "Up"
+    },
+    {
+        "date": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "ib_high": 20850.00,
+        "ib_low": 20795.75,
+        "ib_range": 54.25,
+        "atr": 280.3,
+        "ib_pct_atr": 19.35,
+        "current_price": 20928.50,
+        "current_extension_pct": 145.2,
+        "reached_30": True,
+        "reached_50": True,
+        "reached_100": True,
+        "time_to_30": 18,
+        "time_to_50": 42,
+        "direction": "Up"
+    },
+    {
+        "date": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "ES",
+        "ib_high": 5945.50,
+        "ib_low": 5930.25,
+        "ib_range": 15.25,
+        "atr": 45.35,
+        "ib_pct_atr": 33.63,
+        "current_price": 5952.75,
+        "current_extension_pct": 47.5,
+        "reached_30": True,
+        "reached_50": False,
+        "reached_100": False,
+        "time_to_30": 22,
+        "time_to_50": None,
+        "direction": "Up"
+    }
+]
+
+try:
+    supabase.table('ib_details').upsert({'id': 1, 'data': ib_details_data}).execute()
+    print("✅ IB Details")
+except Exception as e:
+    print(f"❌ IB Details: {e}")
+
+# 9. Single Prints
+single_prints_data = [
+    {
+        "date_formed": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "price_level": 20880.00,
+        "session": "RTH",
+        "age_days": 0,
+        "current_price": 20995.75,
+        "distance_from_current": 115.75,
+        "filled": False,
+        "fill_date": None,
+        "direction_from_current": "Below"
+    },
+    {
+        "date_formed": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "price_level": 21085.25,
+        "session": "RTH",
+        "age_days": 1,
+        "current_price": 20995.75,
+        "distance_from_current": 89.50,
+        "filled": False,
+        "fill_date": None,
+        "direction_from_current": "Above"
+    },
+    {
+        "date_formed": (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+        "symbol": "NQ",
+        "price_level": 20950.00,
+        "session": "RTH",
+        "age_days": 3,
+        "current_price": 20995.75,
+        "distance_from_current": 45.75,
+        "filled": True,
+        "fill_date": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "direction_from_current": "Below"
+    },
+    {
+        "date_formed": (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d"),
+        "symbol": "ES",
+        "price_level": 5915.50,
+        "session": "RTH",
+        "age_days": 0,
+        "current_price": 5952.75,
+        "distance_from_current": 37.25,
+        "filled": False,
+        "fill_date": None,
+        "direction_from_current": "Below"
+    }
+]
+
+try:
+    supabase.table('single_prints').upsert({'id': 1, 'data': single_prints_data}).execute()
+    print("✅ Single Prints")
+except Exception as e:
+    print(f"❌ Single Prints: {e}")
+
 print("\n" + "="*60)
 print("🎉 All sections populated!")
-print("📊 Check your dashboard - all sections should now be visible")
+print("📊 Check your dashboard - all 9 sections should now be visible")
 print("="*60)
