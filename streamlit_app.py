@@ -1592,6 +1592,45 @@ def main():
 
     # Sidebar
     with st.sidebar:
+        # ALERTS SECTION AT TOP
+        st.markdown("### 🚨 Alerts")
+
+        # Current time display
+        is_live_alerts, current_time_alerts = get_current_market_status()
+        st.caption(f"Updated: {current_time_alerts.strftime('%I:%M:%S %p')}")
+
+        # NQ Alerts (Top)
+        st.markdown("**📊 NQ Alerts**")
+        if st.button("🗑️ Clear NQ", key="clear_nq_sidebar", use_container_width=True):
+            nq_data = load_alerts_data("alerts_nq")
+            if nq_data is not None:
+                for idx, alert in nq_data.iterrows():
+                    alert_id = generate_alert_id("NQ", alert)
+                    st.session_state.dismissed_alerts.add(alert_id)
+            st.rerun()
+
+        nq_alerts = load_alerts_data("alerts_nq")
+        check_and_play_alert_sounds(nq_alerts, "NQ")
+        render_alert_feed_compact(nq_alerts, "NQ")
+
+        # ES Alerts (Bottom) - no separator, just below NQ
+        st.markdown("")  # Small space
+        st.markdown("**📊 ES Alerts**")
+        if st.button("🗑️ Clear ES", key="clear_es_sidebar", use_container_width=True):
+            es_data = load_alerts_data("alerts_es")
+            if es_data is not None:
+                for idx, alert in es_data.iterrows():
+                    alert_id = generate_alert_id("ES", alert)
+                    st.session_state.dismissed_alerts.add(alert_id)
+            st.rerun()
+
+        es_alerts = load_alerts_data("alerts_es")
+        check_and_play_alert_sounds(es_alerts, "ES")
+        render_alert_feed_compact(es_alerts, "ES")
+
+        st.markdown("---")
+
+        # Settings section
         st.markdown("### ⚙️ Settings")
 
         # Sound toggle
@@ -1712,48 +1751,10 @@ def main():
                 st.markdown(f"**{section_name}**")
 
         st.markdown("---")
-
-        # ALERTS SECTION IN SIDEBAR
-        st.markdown("### 🚨 Alerts")
-
-        # Current time display
-        is_live_alerts, current_time_alerts = get_current_market_status()
-        st.caption(f"Updated: {current_time_alerts.strftime('%I:%M:%S %p')}")
-
-        # NQ Alerts (Top)
-        st.markdown("**📊 NQ Alerts**")
-        if st.button("🗑️ Clear NQ", key="clear_nq_sidebar", use_container_width=True):
-            nq_data = load_alerts_data("alerts_nq")
-            if nq_data is not None:
-                for idx, alert in nq_data.iterrows():
-                    alert_id = generate_alert_id("NQ", alert)
-                    st.session_state.dismissed_alerts.add(alert_id)
-            st.rerun()
-
-        nq_alerts = load_alerts_data("alerts_nq")
-        check_and_play_alert_sounds(nq_alerts, "NQ")
-        render_alert_feed_compact(nq_alerts, "NQ")
-
-        # ES Alerts (Bottom) - no separator, just below NQ
-        st.markdown("")  # Small space
-        st.markdown("**📊 ES Alerts**")
-        if st.button("🗑️ Clear ES", key="clear_es_sidebar", use_container_width=True):
-            es_data = load_alerts_data("alerts_es")
-            if es_data is not None:
-                for idx, alert in es_data.iterrows():
-                    alert_id = generate_alert_id("ES", alert)
-                    st.session_state.dismissed_alerts.add(alert_id)
-            st.rerun()
-
-        es_alerts = load_alerts_data("alerts_es")
-        check_and_play_alert_sounds(es_alerts, "ES")
-        render_alert_feed_compact(es_alerts, "ES")
-
-        st.markdown("---")
         st.markdown("### ℹ️ About")
         st.caption("Live NQ/ES trading statistics dashboard")
         st.caption("Built with Streamlit")
-        st.caption("🔧 Version: 2.0 - Alerts in Sidebar")
+        st.caption("🔧 Version: 2.1 - Alerts at Top")
 
     # Load data files
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
