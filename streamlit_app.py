@@ -62,6 +62,12 @@ if 'section_order' not in st.session_state or 'Alerts' in st.session_state.secti
 if 'dismissed_alerts' not in st.session_state:
     st.session_state.dismissed_alerts = set()
 
+# Initialize session state for expanded alerts view
+if 'expanded_nq_alerts' not in st.session_state:
+    st.session_state.expanded_nq_alerts = False
+if 'expanded_es_alerts' not in st.session_state:
+    st.session_state.expanded_es_alerts = False
+
 # Initialize session state for alert sounds
 if 'sound_enabled' not in st.session_state:
     st.session_state.sound_enabled = True
@@ -1470,8 +1476,14 @@ def render_alert_feed_compact(df, symbol):
 
     st.caption(f"🔴 {critical_count} 🟡 {warning_count} 🔵 {info_count}")
 
-    # Display top 5 alerts - very compact
-    for alert_id, alert in filtered_alerts[:5]:
+    # Check if expanded
+    is_expanded = st.session_state.get(f'expanded_{symbol.lower()}_alerts', False)
+
+    # Determine how many alerts to show
+    alerts_to_show = filtered_alerts if is_expanded else filtered_alerts[:5]
+
+    # Display alerts - very compact
+    for alert_id, alert in alerts_to_show:
         priority = alert.get('priority', 'info')
         icon = {'critical': '🔴', 'warning': '🟡', 'info': '🔵'}.get(priority, '🔵')
 
@@ -1485,8 +1497,16 @@ def render_alert_feed_compact(df, symbol):
             st.session_state.dismissed_alerts.add(alert_id)
             st.rerun()
 
+    # Show expand/collapse button if more than 5 alerts
     if len(filtered_alerts) > 5:
-        st.caption(f"+ {len(filtered_alerts) - 5} more")
+        if is_expanded:
+            if st.button("▲ Show less", key=f"collapse_{symbol.lower()}", use_container_width=True):
+                st.session_state[f'expanded_{symbol.lower()}_alerts'] = False
+                st.rerun()
+        else:
+            if st.button(f"▼ Show {len(filtered_alerts) - 5} more", key=f"expand_{symbol.lower()}", use_container_width=True):
+                st.session_state[f'expanded_{symbol.lower()}_alerts'] = True
+                st.rerun()
 
 def render_alert_feed(df, symbol):
     """Render alert feed for a specific symbol"""
@@ -1754,7 +1774,7 @@ def main():
         st.markdown("### ℹ️ About")
         st.caption("Live NQ/ES trading statistics dashboard")
         st.caption("Built with Streamlit")
-        st.caption("🔧 Version: 2.1 - Alerts at Top")
+        st.caption("🔧 Version: 2.2 - Expandable Alerts")
 
     # Load data files
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
