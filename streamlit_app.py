@@ -1624,6 +1624,11 @@ def main():
         if st.button("🗑️ Clear NQ", key="clear_nq_sidebar", use_container_width=True):
             nq_data = load_alerts_data("alerts_nq")
             if nq_data is not None:
+                # Make timestamp timezone-aware to match render function
+                est = pytz.timezone('US/Eastern')
+                if nq_data['timestamp'].dt.tz is None:
+                    nq_data['timestamp'] = nq_data['timestamp'].dt.tz_localize(est)
+
                 for idx, alert in nq_data.iterrows():
                     alert_id = generate_alert_id("NQ", alert)
                     st.session_state.dismissed_alerts.add(alert_id)
@@ -1639,6 +1644,11 @@ def main():
         if st.button("🗑️ Clear ES", key="clear_es_sidebar", use_container_width=True):
             es_data = load_alerts_data("alerts_es")
             if es_data is not None:
+                # Make timestamp timezone-aware to match render function
+                est = pytz.timezone('US/Eastern')
+                if es_data['timestamp'].dt.tz is None:
+                    es_data['timestamp'] = es_data['timestamp'].dt.tz_localize(est)
+
                 for idx, alert in es_data.iterrows():
                     alert_id = generate_alert_id("ES", alert)
                     st.session_state.dismissed_alerts.add(alert_id)
@@ -1774,7 +1784,7 @@ def main():
         st.markdown("### ℹ️ About")
         st.caption("Live NQ/ES trading statistics dashboard")
         st.caption("Built with Streamlit")
-        st.caption("🔧 Version: 2.2 - Expandable Alerts")
+        st.caption("🔧 Version: 2.3 - Clear Button Fixed")
 
     # Load data files
     gap_df = load_gap_data(Path(__file__).parent / gap_file)
