@@ -395,6 +395,7 @@ single_prints_data = [
         "distance_from_current": 115.75,
         "filled": False,
         "fill_date": None,
+        "fill_time_minutes": None,
         "direction_from_current": "Below"
     },
     {
@@ -407,6 +408,7 @@ single_prints_data = [
         "distance_from_current": 89.50,
         "filled": False,
         "fill_date": None,
+        "fill_time_minutes": None,
         "direction_from_current": "Above"
     },
     {
@@ -419,6 +421,7 @@ single_prints_data = [
         "distance_from_current": 45.75,
         "filled": True,
         "fill_date": (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "fill_time_minutes": 2880,
         "direction_from_current": "Below"
     },
     {
@@ -431,6 +434,7 @@ single_prints_data = [
         "distance_from_current": 37.25,
         "filled": False,
         "fill_date": None,
+        "fill_time_minutes": None,
         "direction_from_current": "Below"
     }
 ]
