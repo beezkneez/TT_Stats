@@ -147,6 +147,67 @@ st.markdown("""
         color: white;
         font-size: 1.2rem;
     }
+    /* Toast notifications */
+    .toast {
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s;
+        backdrop-filter: blur(10px);
+        border-left: 4px solid;
+    }
+    .toast-critical {
+        border-color: #d32f2f;
+        background: linear-gradient(135deg, rgba(211, 47, 47, 0.95), rgba(183, 28, 28, 0.95));
+    }
+    .toast-warning {
+        border-color: #f57c00;
+        background: linear-gradient(135deg, rgba(245, 124, 0, 0.95), rgba(230, 81, 0, 0.95));
+    }
+    .toast-info {
+        border-color: #2196f3;
+        background: linear-gradient(135deg, rgba(33, 150, 243, 0.95), rgba(25, 118, 210, 0.95));
+    }
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+    .toast-icon {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+    }
+    .toast-content {
+        display: flex;
+        align-items: center;
+        color: white;
+    }
+    .toast-text {
+        flex: 1;
+    }
+    .toast-time {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+    .toast-message {
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+        color: rgba(255, 255, 255, 0.95);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -550,92 +611,42 @@ def show_toast_notifications():
 
     # Display toasts if any
     if toasts_html:
-        toast_html = f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{
-                    margin: 0;
-                    padding: 0;
+        # Escape quotes in HTML for JavaScript
+        toasts_escaped = ''.join(toasts_html).replace("'", "\\'").replace('\n', '')
+
+        toast_script = f'''
+        <script>
+        (function() {{
+            // Remove old toast container if exists
+            const oldContainer = window.parent.document.getElementById('toast-container-custom');
+            if (oldContainer) {{
+                oldContainer.remove();
+            }}
+
+            // Create toast container
+            const container = window.parent.document.createElement('div');
+            container.id = 'toast-container-custom';
+            container.innerHTML = `{toasts_escaped}`;
+
+            // Apply styles directly
+            container.style.position = 'fixed';
+            container.style.top = '4rem';
+            container.style.right = '1rem';
+            container.style.zIndex = '999999';
+            container.style.maxWidth = '400px';
+
+            window.parent.document.body.appendChild(container);
+
+            // Auto-remove after 5.5 seconds
+            setTimeout(() => {{
+                if (container && container.parentNode) {{
+                    container.remove();
                 }}
-                .toast-container {{
-                    position: fixed;
-                    top: 4rem;
-                    right: 1rem;
-                    z-index: 999999;
-                    max-width: 400px;
-                }}
-                .toast {{
-                    border-radius: 0.5rem;
-                    padding: 1rem;
-                    margin-bottom: 0.5rem;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 4.7s;
-                    backdrop-filter: blur(10px);
-                    border-left: 4px solid;
-                }}
-                .toast-critical {{
-                    border-color: #d32f2f;
-                    background: linear-gradient(135deg, rgba(211, 47, 47, 0.95), rgba(183, 28, 28, 0.95));
-                }}
-                .toast-warning {{
-                    border-color: #f57c00;
-                    background: linear-gradient(135deg, rgba(245, 124, 0, 0.95), rgba(230, 81, 0, 0.95));
-                }}
-                .toast-info {{
-                    border-color: #2196f3;
-                    background: linear-gradient(135deg, rgba(33, 150, 243, 0.95), rgba(25, 118, 210, 0.95));
-                }}
-                @keyframes slideIn {{
-                    from {{
-                        transform: translateX(400px);
-                        opacity: 0;
-                    }}
-                    to {{
-                        transform: translateX(0);
-                        opacity: 1;
-                    }}
-                }}
-                @keyframes fadeOut {{
-                    from {{
-                        opacity: 1;
-                    }}
-                    to {{
-                        opacity: 0;
-                    }}
-                }}
-                .toast-icon {{
-                    font-size: 1.5rem;
-                    margin-right: 0.5rem;
-                }}
-                .toast-content {{
-                    display: flex;
-                    align-items: center;
-                    color: white;
-                }}
-                .toast-text {{
-                    flex: 1;
-                }}
-                .toast-time {{
-                    font-size: 0.75rem;
-                    color: rgba(255, 255, 255, 0.8);
-                }}
-                .toast-message {{
-                    font-size: 0.9rem;
-                    margin-top: 0.25rem;
-                    color: rgba(255, 255, 255, 0.95);
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="toast-container">
-                {''.join(toasts_html)}
-            </div>
-        </body>
-        </html>
+            }}, 5500);
+        }})();
+        </script>
         '''
-        components.html(toast_html, height=0)
+        components.html(toast_script, height=0)
 
 def get_current_market_status():
     """Check if market is currently open (9:30 AM - 4:00 PM EST)"""
