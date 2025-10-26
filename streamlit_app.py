@@ -1449,25 +1449,20 @@ def render_alert_feed(df, symbol):
     if df['timestamp'].dt.tz is None:
         df['timestamp'] = df['timestamp'].dt.tz_localize(est)
 
-    # Filter to recent alerts (last 2 hours), or show all if none recent
-    two_hours_ago = datetime.now(est) - timedelta(hours=2)
-    recent_alerts = df[df['timestamp'] > two_hours_ago].sort_values('timestamp', ascending=False)
-
-    # If no recent alerts, show last 15 alerts anyway (for demo/testing)
-    if len(recent_alerts) == 0:
-        recent_alerts = df.sort_values('timestamp', ascending=False).head(15)
-        st.caption(f"ℹ️ No alerts in last 2 hours - showing most recent {len(recent_alerts)}")
+    # Sort all alerts by timestamp (most recent first)
+    all_alerts = df.sort_values('timestamp', ascending=False)
 
     # Filter out dismissed alerts (user-specific)
     filtered_alerts = []
-    for idx, alert in recent_alerts.iterrows():
+    for idx, alert in all_alerts.iterrows():
         alert_id = generate_alert_id(symbol, alert)
         if alert_id not in st.session_state.dismissed_alerts:
             filtered_alerts.append((alert_id, alert))
 
-    recent_alerts = pd.DataFrame([alert for _, alert in filtered_alerts])
+    # Convert back to DataFrame
+    alerts_to_show = pd.DataFrame([alert for _, alert in filtered_alerts])
 
-    if len(recent_alerts) == 0:
+    if len(alerts_to_show) == 0:
         st.info(f"No {symbol} alerts available")
         return
 
